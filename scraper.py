@@ -272,10 +272,12 @@ def scrape_se7en():
             # 해당 블록에서 이미지+이름 찾기
             idx = html.find(f'detail/{pid}')
             seg = html[max(0,idx-200): idx+800]
-            mi = re.search(r'src="(https://se7en\.jp/html/upload/save_image/[^"]+)"|' +
+            mi = re.search(r'src="(/html/upload/save_image/[^"]+)"|' +
+                           r'src="(https://se7en\.jp/[^"]+\.(?:jpg|png|webp))"', seg)
                            r'src="(https://se7en\.jp/[^"]+\.(?:jpg|png|webp))"', seg)
             mn = re.search(r'<p[^>]*>\s*([^<]{4,80})\s*</p>', seg)
-            img  = (mi.group(1) or mi.group(2)) if mi else ""
+            img_raw = (mi.group(1) or mi.group(2)) if mi else ""
+            img = f"https://se7en.jp{img_raw}" if img_raw and img_raw.startswith("/") else img_raw
             name = unescape(mn.group(1)).strip() if mn else f"상품 {pid}"
             items.append({
                 "source":"SE7EN","color":"#fb923c",
@@ -359,19 +361,20 @@ def scrape_kapital_home():
         for block in block_pat.finditer(html):
             b  = block.group(1)
             ml = re.search(r'href="(https://www\.kapital-webshop\.jp/item/([^"]+)\.html)"', b)
-            mi = re.search(r'src="(https://www\.kapital-webshop\.jp/[^"]+_M\.jpg)"', b)
-            if not mi:
-                mi = re.search(r'src="(https://www\.kapital-webshop\.jp[^"]+\.(jpg|png))"', b)
-            mn = re.search(r'class="[^"]*name[^"]*"[^>]*>\s*([^<]{4,80})', b)
-            if not mn:
-                mn = re.search(r'<p[^>]*>\s*([^<]{10,80})\s*</p>', b)
+            mi = re.search(r'data-original="(/client_info/KAPITAL/itemimage/[^"]+\.jpg)"', b)
+            if not mi: mi = re.search(r'src="(/client_info/KAPITAL/[^"]+\.jpg)"', b)
+
+            mn = re.search(r'alt="([^"]{4,80})"', b)
+            if not mn: mn = re.search(r'class="[^"]*name[^"]*"[^>]*>\s*([^<]{4,80})', b)
+            if not mn: mn = re.search(r'<p[^>]*>\s*([^<]{10,80})\s*</p>', b)
             mp = price_pat.search(b)
             if not ml: continue
             item_code = ml.group(2)
             if item_code in seen: continue
             seen.add(item_code)
             name  = unescape(mn.group(1)).strip() if mn else item_code
-            img   = mi.group(1) if mi else ""
+            img_raw = mi.group(1) if mi else ""
+            img = f"https://www.kapital-webshop.jp{img_raw}" if img_raw else ""
             price = f"¥{mp.group(1)}" if mp else "-"
             items.append({
                 "source":"KAPITAL 공홈","color":"#ff6b6b",
