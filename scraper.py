@@ -22,10 +22,13 @@ def scrape_blueneon():
     if not raw: return []
     try: html = raw.decode("euc-jp")
     except: html = raw.decode("utf-8", errors="replace")
-    img_pat  = re.compile(r'src="(https://img\d+\.shop-pro\.jp/PA01239/545/product/\d+_th\.jpg)\?cmsp_timestamp=(\d{8})\d+"')
-    link_pat = re.compile(r'href="(https://blueneon\.jp/\?pid=\d+)"')
-    name_pat = re.compile(r'\[([^\]]{3,80})\]')
-    price_pat= re.compile(r'([\d,]+)円')
+
+    # 패턴: src="...product/PID_th.jpg?cmsp_timestamp=YYYYMMDD..."
+    img_pat   = re.compile(r'src="(https://img\d+\.shop-pro\.jp/PA01239/545/product/\d+_th\.jpg)\?cmsp_timestamp=(\d{8})\d+"')
+    link_pat  = re.compile(r'href="(https://blueneon\.jp/\?pid=\d+)"')
+    name_pat  = re.compile(r'\[([^\]]{3,80})\]')
+    price_pat = re.compile(r'([\d,]+)円')
+
     items, pos = [], 0
     while True:
         mi = img_pat.search(html, pos)
@@ -48,22 +51,38 @@ def scrape_takefive():
     if not raw: return []
     try: html = raw.decode("euc-jp")
     except: html = raw.decode("utf-8", errors="replace")
-    img_pat  = re.compile(r'src="(https://img\d+\.shop-pro\.jp/PA01043/640/product/\d+_th\.jpg)\?cmsp_timestamp=(\d{8})\d+"')
-    link_pat = re.compile(r'href="(https://takefive\.jp/\?pid=\d+)"')
-    name_pat = re.compile(r'\[([^\]]{3,80})\]')
-    items, pos = [], 0
-    while True:
-        mi = img_pat.search(html, pos)
-        if not mi: break
-        seg = html[mi.start(): mi.start()+600]
-        ml, mn = link_pat.search(seg), name_pat.search(seg)
-        if ml and mn:
-            dr = mi.group(2)
-            name = unescape(mn.group(1)).replace("[KAPITAL]","").strip()
-            items.append({"source":"TAKE FIVE","color":"#f5c842","name":name,
-                "price":"-","img":mi.group(1),"link":ml.group(1),
-                "date":dr,"date_label":f"{dr[:4]}.{dr[4:6]}.{dr[6:8]}"})
-        pos = mi.end()
+
+    # 실제 HTML 구조:
+    # [![](img_url?cmsp_timestamp=YYYYMMDD...)](link_url)
+    # [[KAPITAL]상품명](link_url)
+    # 이미지 URL과 링크가 별도 줄에 있음
+
+    # 이미지 URL + timestamp
+    # 실제 HTML 구조:
+    # [![](img?cmsp_timestamp=YYYYMMDD)](link)
+    # [![](icon)][KAPITAL]상품명](link)
+    img_pat  = re.compile(
+        r'https://img09\.shop-pro\.jp/PA01043/640/product/(\d+)_th\.jpg'
+        r'\?cmsp_timestamp=(\d{8})\d+'
+    )
+    name_pat = re.compile(r'\[(?:!\[.*?\]\(.*?\))?\[KAPITAL\]\s*([^\[\]]+)\]\(https://takefive')
+
+    items = []
+    for mi in img_pat.finditer(html):
+        pid      = mi.group(1)
+        date_raw = mi.group(2)
+        seg = html[mi.start(): mi.start()+500]
+        mn = name_pat.search(seg)
+        name = unescape(mn.group(1)).strip() if mn else f"상품 {pid}"
+        dr = date_raw
+        items.append({
+            "source":"TAKE FIVE","color":"#f5c842",
+            "name": name, "price": "-",
+            "img": f"https://img09.shop-pro.jp/PA01043/640/product/{pid}_th.jpg",
+            "link": f"https://takefive.jp/?pid={pid}",
+            "date": dr, "date_label": f"{dr[:4]}.{dr[4:6]}.{dr[6:8]}"
+        })
+
     print(f"  → {len(items)} items")
     return items
 
@@ -110,12 +129,11 @@ def card_html(i):
         f'</div></a>'
     )
 
-CSS = """
-<style>
+CSS = """<style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:#0e0e0e;color:#f0ede8;font-family:sans-serif;font-weight:300;min-height:100vh}
-header{border-bottom:1px solid #2a2a2a;padding:20px 24px;display:flex;justify-content:space-between;align-items:flex-end}
-.logo{font-size:28px;font-weight:700;letter-spacing:4px;line-height:1}
+header{border-bottom:1px solid #2a2a2a;padding:20px 24px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px}
+.logo{font-size:26px;font-weight:700;letter-spacing:4px;line-height:1}
 .logo span{color:#888;font-size:11px;font-weight:300;display:block;letter-spacing:2px;margin-top:3px}
 .meta{text-align:right;font-size:11px;color:#888;line-height:1.8}
 .legend{display:flex;gap:14px;padding:10px 24px;border-bottom:1px solid #2a2a2a;flex-wrap:wrap}
@@ -123,7 +141,7 @@ header{border-bottom:1px solid #2a2a2a;padding:20px 24px;display:flex;justify-co
 .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .filters{padding:10px 24px;display:flex;gap:7px;border-bottom:1px solid #2a2a2a;flex-wrap:wrap;align-items:center}
 .fl{font-size:11px;color:#888;letter-spacing:1px;margin-right:3px}
-button{background:transparent;border:1px solid #2a2a2a;color:#888;padding:4px 11px;font-size:11px;cursor:pointer;letter-spacing:1px;transition:all .15s;border-radius:2px}
+button{background:transparent;border:1px solid #2a2a2a;color:#888;padding:4px 11px;font-size:11px;cursor:pointer;letter-spacing:1px;transition:all .15s;border-radius:2px;font-family:sans-serif}
 button:hover,button.active{border-color:#f0ede8;color:#f0ede8}
 .cbar{padding:7px 24px;font-size:12px;color:#888;border-bottom:1px solid #2a2a2a}
 .cbar span{color:#f0ede8;font-weight:500}
@@ -143,11 +161,9 @@ button:hover,button.active{border-color:#f0ede8;color:#f0ede8}
 .notice{padding:14px 24px;font-size:11px;color:#888;line-height:1.8;border-top:1px solid #2a2a2a}
 footer{padding:14px 24px;border-top:1px solid #2a2a2a;font-size:11px;color:#888;text-align:center;letter-spacing:1px}
 .hidden{display:none!important}
-</style>
-"""
+</style>"""
 
-JS = """
-<script>
+JS = """<script>
 var cs=Array.from(document.querySelectorAll('.card[data-source]'));
 cs.sort(function(a,b){return parseInt(b.dataset.date)-parseInt(a.dataset.date)});
 var g=document.getElementById('grid');
@@ -159,8 +175,7 @@ function filt(src){
   cs.forEach(function(c){var s=src==='ALL'||c.dataset.source===src;c.classList.toggle('hidden',!s);if(s)n++});
   document.getElementById('cnt').textContent=n;
 }
-</script>
-"""
+</script>"""
 
 def build_html(items):
     cards = "\n".join(card_html(i) for i in items)
