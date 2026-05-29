@@ -127,6 +127,256 @@ def scrape_spacemoo():
         "link":f"https://www.spacemoo.jp/products/details/{pid}",
         "date":dr,"date_label":f"{dr[:4]}.{dr[4:6]}.{dr[6:8]}"} for pid,n,p,img,dr in static]
 
+def scrape_shop_pro(source, color, img_prefix, url, encoding="euc-jp"):
+    """shop-pro.jp 기반 사이트 공통 스크래퍼"""
+    print(f"[{source}] scraping...")
+    raw = fetch_raw(url)
+    if not raw: return []
+    try: html = raw.decode(encoding)
+    except: html = raw.decode("utf-8", errors="replace")
+
+    img_pat   = re.compile(
+        r'https://img\d+\.shop-pro\.jp/' + img_prefix +
+        r'/product/(\d+)_th\.(jpg|png)\?cmsp_timestamp=(\d{8})\d+'
+    )
+    name_pat  = re.compile(r'href="\?pid=\d+"[^>]*>(?:<img[^>]+>)*([^<]{4,100})</a>')
+    price_pat = re.compile(r'([\d,]+)円')
+
+    items, seen = [], set()
+    for mi in img_pat.finditer(html):
+        pid, ext, dr = mi.group(1), mi.group(2), mi.group(3)
+        if pid in seen: continue
+        seen.add(pid)
+        seg  = html[mi.start(): mi.start()+600]
+        mn   = name_pat.search(seg)
+        mp   = price_pat.search(seg)
+        name = unescape(mn.group(1)).strip() if mn else f"상품 {pid}"
+        # KAPITAL / kapital 접두어 정리
+        name = re.sub(r'^(?:KAPITAL|kapital|\[?kapital\]?)\s*[-/]?\s*', '', name, flags=re.IGNORECASE).strip()
+        items.append({
+            "source": source, "color": color,
+            "name": name,
+            "price": f"¥{mp.group(1)}" if mp else "-",
+            "img": f"https://img08.shop-pro.jp/{img_prefix}/product/{pid}_th.{ext}",
+            "link": f"{url.split('?')[0]}?pid={pid}",
+            "date": dr, "date_label": f"{dr[:4]}.{dr[4:6]}.{dr[6:8]}"
+        })
+    print(f"  → {len(items)} items")
+    return items
+
+
+def scrape_babooshka():
+    return scrape_shop_pro(
+        "BABOOSHKA", "#38bdf8",
+        "PA01038/438",
+        "https://bab-web.shop-pro.jp/?mode=cate&cbid=1739088&csid=1&sort=n"
+    )
+
+def scrape_aindahing():
+    return scrape_shop_pro(
+        "AIN.DAH.ING", "#a78bfa",
+        "PA01135/633",
+        "http://ain-dah-ing.shop-pro.jp/?mode=cate&cbid=1008715&csid=0&sort=n"
+    )
+
+def scrape_stc():
+    print("[S.T.C] scraping...")
+    raw = fetch_raw("https://www.net-stc.com/category/14/")
+    if not raw: return []
+    html = raw.decode("utf-8", errors="replace")
+
+    # s.t.c는 일반 HTML, 이미지 경로 다름
+    # <img src="/images/material/상품코드.jpg">
+    # <a href="/item/상품코드/">상품명</a>
+    item_pat = re.compile(
+        r'<a href="(https://www\.net-stc\.com/item/([^/]+)/)"[^>]*>\s*([^<]{4,100})\s*</a>.*?'
+        r'販売価格:(\d[\d,]*)円',
+        re.DOTALL
+    )
+    img_pat = re.compile(r'src="(https://www\.net-stc\.com/images/material/[^"]+\.jpg)"')
+
+    items, seen = [], set()
+    # 블록 단위로 파싱
+    blocks = re.split(r'(?=<a href="https://www\.net-stc\.com/item/)', html)
+    for block in blocks:
+        ml = re.match(r'<a href="(https://www\.net-stc\.com/item/([^/]+)/)"[^>]*>\s*([^<]{4,100})', block)
+        if not ml: continue
+        link = ml.group(1)
+        code = ml.group(2)
+        name = unescape(ml.group(3)).strip()
+        if code in seen: continue
+        seen.add(code)
+        mi = img_pat.search(block[:500])
+        mp = re.search(r'販売価格:([\d,]+)円', block[:300])
+        img = mi.group(1) if mi else ""
+        dr = datetime.now(KST).strftime("%Y%m%d")
+        items.append({
+            "source":"S.T.C","color":"#34d399",
+            "name": name, "price": f"¥{mp.group(1)}" if mp else "-",
+            "img": img, "link": link,
+            "date": dr, "date_label": "신착"
+        })
+    print(f"  → {len(items)} items")
+    return items
+
+
+def scrape_se7en():
+    print("[SE7EN] scraping with selenium...")
+    try:
+        from selenium import webdriver
+        from selenium.webdriver.chrome.options import Options
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.common.by import By
+        import time
+
+        opts = Options()
+        opts.add_argument("--headless")
+        opts.add_argument("--no-sandbox")
+        opts.add_argument("--disable-dev-shm-usage")
+        opts.add_argument("--disable-gpu")
+        opts.add_argument("--window-size=1280,800")
+        opts.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36")
+
+        driver = webdriver.Chrome(options=opts)
+        driver.get("https://se7en.jp/products/list?category_id=32&orderby=3&pageno=1&disp_number=20")
+
+        try:
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, ".item_list, .product_list, .item-list, div[class*='item']"))
+            )
+        except:
+            pass
+        time.sleep(3)
+
+        html = driver.page_source
+        driver.quit()
+
+        # 상품 파싱
+        # SE7EN 상품 URL 패턴: /products/detail/숫자
+        item_pat = re.compile(
+            r'href="(https://se7en\.jp/products/detail/(\d+))"[^>]*>.*?'
+            r'<img[^>]+src="(https://se7en\.jp/[^"]+(?:jpg|png|webp))"[^>]*>.*?'
+            r'<p[^>]*class="[^"]*name[^"]*"[^>]*>\s*([^<]{4,100})',
+            re.DOTALL
+        )
+        price_in_block = re.compile(r'([\d,]+)円')
+
+        items = []
+        seen = set()
+        for m in item_pat.finditer(html):
+            link = m.group(1)
+            pid  = m.group(2)
+            img  = m.group(3)
+            name = unescape(m.group(4)).strip()
+            if pid in seen: continue
+            seen.add(pid)
+
+            # 날짜: SE7EN은 날짜 노출 없으므로 오늘 날짜
+            dr = datetime.now(KST).strftime("%Y%m%d")
+            items.append({
+                "source":"SE7EN","color":"#fb923c",
+                "name": name, "price": "-",
+                "img": img, "link": link,
+                "date": dr, "date_label": "신착"
+            })
+
+        print(f"  → {len(items)} items")
+        return items
+
+    except Exception as e:
+        print(f"  [WARN] SE7EN Selenium 실패: {e}")
+        return []
+
+
+def scrape_kapital_home():
+    print("[Kapital Home] scraping with selenium...")
+    try:
+        from selenium import webdriver
+        from selenium.webdriver.chrome.options import Options
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        import time
+
+        opts = Options()
+        opts.add_argument("--headless")
+        opts.add_argument("--no-sandbox")
+        opts.add_argument("--disable-dev-shm-usage")
+        opts.add_argument("--disable-gpu")
+        opts.add_argument("--window-size=1280,800")
+        opts.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36")
+
+        driver = webdriver.Chrome(options=opts)
+
+        # 신착순 URL
+        url = "https://www.kapital-webshop.jp/item_list.html?sort=3&dispno=40"
+        driver.get(url)
+        time.sleep(3)
+
+        # 상품 목록 대기
+        try:
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, ".item_list_each, .itemlist, li.item"))
+            )
+        except:
+            pass
+        time.sleep(2)
+
+        html = driver.page_source
+        driver.quit()
+
+        # 상품 파싱
+        # 이미지: /client_info/KAPITAL/view/userweb/images/item/...
+        img_pat  = re.compile(r'src="(/client_info/KAPITAL/[^"]+/(\d{6,})[^"]*\.(jpg|png))"')
+        name_pat = re.compile(r'class="[^"]*item_?name[^"]*"[^>]*>\s*([^<]{4,80})')
+        price_pat= re.compile(r'([\d,]+)円')
+        link_pat = re.compile(r'href="(/item/([A-Z0-9_\-]+)\.html)"')
+
+        # 더 단순한 방법: 신착 아이템 링크 파싱
+        item_pat = re.compile(
+            r'href="(https://www\.kapital-webshop\.jp/item/([^"]+)\.html)"[^>]*>'
+            r'.*?<img[^>]+src="([^"]+)"[^>]*>'
+            r'.*?<[^>]+class="[^"]*name[^"]*"[^>]*>\s*([^<]+)',
+            re.DOTALL
+        )
+
+        items = []
+        # 방법 2: 개별 상품 블록 파싱
+        block_pat = re.compile(
+            r'<li[^>]*class="[^"]*item[^"]*"[^>]*>(.*?)</li>',
+            re.DOTALL
+        )
+        for block in block_pat.finditer(html):
+            b = block.group(1)
+            ml = re.search(r'href="(https://www\.kapital-webshop\.jp/item/[^"]+\.html)"', b)
+            mi = re.search(r'src="(https://www\.kapital-webshop\.jp/[^"]+_M\.(jpg|png))"', b)
+            mn = re.search(r'class="[^"]*item_?name[^"]*"[^>]*>\s*<[^>]+>\s*([^<]{4,80})', b)
+            if not mn:
+                mn = re.search(r'class="[^"]*item_?name[^"]*"[^>]*>\s*([^<]{4,80})', b)
+            mp = price_pat.search(b)
+
+            if ml and mn:
+                name = unescape(mn.group(1)).strip()
+                img  = mi.group(1) if mi else ""
+                link = ml.group(1)
+                price= f"¥{mp.group(1)}" if mp else "-"
+                items.append({
+                    "source":"KAPITAL 공홈","color":"#ff6b6b",
+                    "name": name, "price": price,
+                    "img": img, "link": link,
+                    "date": datetime.now(KST).strftime("%Y%m%d"),
+                    "date_label": "신착"
+                })
+
+        print(f"  → {len(items)} items")
+        return items
+
+    except Exception as e:
+        print(f"  [WARN] Selenium 실패: {e}")
+        return []
+
+
 def card_html(i):
     oe = "this.style.display='none'"
     return (
@@ -181,13 +431,47 @@ var cs=Array.from(document.querySelectorAll('.card[data-source]'));
 cs.sort(function(a,b){return parseInt(b.dataset.date)-parseInt(a.dataset.date)});
 var g=document.getElementById('grid');
 cs.forEach(function(c){g.appendChild(c)});
-function filt(src){
-  document.querySelectorAll('button[data-source]').forEach(function(b){b.classList.remove('active')});
-  document.querySelector('button[data-source="'+src+'"]').classList.add('active');
+
+var curSrc='ALL', curDays=3;
+
+function getDateInt(daysAgo){
+  var d=new Date();
+  d.setDate(d.getDate()-daysAgo);
+  var y=d.getFullYear();
+  var m=String(d.getMonth()+1).padStart(2,'0');
+  var day=String(d.getDate()).padStart(2,'0');
+  return parseInt(y+m+day);
+}
+
+function applyFilter(){
+  var cutoff=getDateInt(curDays);
   var n=0;
-  cs.forEach(function(c){var s=src==='ALL'||c.dataset.source===src;c.classList.toggle('hidden',!s);if(s)n++});
+  cs.forEach(function(c){
+    var srcOk=curSrc==='ALL'||c.dataset.source===curSrc;
+    var dateOk=parseInt(c.dataset.date)>=cutoff;
+    var show=srcOk&&dateOk;
+    c.classList.toggle('hidden',!show);
+    if(show)n++;
+  });
   document.getElementById('cnt').textContent=n;
 }
+
+function filt(src){
+  curSrc=src;
+  document.querySelectorAll('button[data-source]').forEach(function(b){b.classList.remove('active')});
+  document.querySelector('button[data-source="'+src+'"]').classList.add('active');
+  applyFilter();
+}
+
+function filtDays(days){
+  curDays=days;
+  document.querySelectorAll('.dbtn').forEach(function(b){b.classList.remove('active')});
+  document.querySelector('.dbtn[data-days="'+days+'"]').classList.add('active');
+  applyFilter();
+}
+
+// 초기 3일 필터 적용
+applyFilter();
 </script>"""
 
 def build_html(items):
@@ -197,7 +481,7 @@ def build_html(items):
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>KAPITAL 신상품 트래커</title>
+<title>KAPITAL NEW ARRIVALS TRACKER</title>
 {CSS}
 </head>
 <body>
@@ -210,14 +494,31 @@ def build_html(items):
   <div class="ld"><div class="dot" style="background:#4a9eff"></div>KEROUAC</div>
   <div class="ld"><div class="dot" style="background:#f5c842"></div>TAKE FIVE</div>
   <div class="ld"><div class="dot" style="background:#c084fc"></div>SPACE MOO</div>
+  <div class="ld"><div class="dot" style="background:#38bdf8"></div>BABOOSHKA</div>
+  <div class="ld"><div class="dot" style="background:#a78bfa"></div>AIN.DAH.ING</div>
+  <div class="ld"><div class="dot" style="background:#34d399"></div>S.T.C</div>
+  <div class="ld"><div class="dot" style="background:#fb923c"></div>SE7EN</div>
+  <div class="ld"><div class="dot" style="background:#ff6b6b"></div>KAPITAL 공홈</div>
 </div>
 <div class="filters">
-  <span class="fl">FILTER</span>
+  <span class="fl">SHOP</span>
   <button class="active" data-source="ALL" onclick="filt('ALL')">ALL</button>
   <button data-source="BLUE NEON" onclick="filt('BLUE NEON')">BLUE NEON</button>
   <button data-source="KEROUAC" onclick="filt('KEROUAC')">KEROUAC</button>
   <button data-source="TAKE FIVE" onclick="filt('TAKE FIVE')">TAKE FIVE</button>
   <button data-source="SPACE MOO" onclick="filt('SPACE MOO')">SPACE MOO</button>
+  <button data-source="BABOOSHKA" onclick="filt('BABOOSHKA')">BABOOSHKA</button>
+  <button data-source="AIN.DAH.ING" onclick="filt('AIN.DAH.ING')">AIN.DAH.ING</button>
+  <button data-source="S.T.C" onclick="filt('S.T.C')">S.T.C</button>
+  <button data-source="SE7EN" onclick="filt('SE7EN')">SE7EN</button>
+  <button data-source="KAPITAL 공홈" onclick="filt('KAPITAL 공홈')">KAPITAL 공홈</button>
+</div>
+<div class="filters">
+  <span class="fl">DAYS</span>
+  <button class="dbtn active" data-days="3" onclick="filtDays(3)">3일</button>
+  <button class="dbtn" data-days="10" onclick="filtDays(10)">10일</button>
+  <button class="dbtn" data-days="30" onclick="filtDays(30)">30일</button>
+  <button class="dbtn" data-days="60" onclick="filtDays(60)">60일</button>
 </div>
 <div class="cbar">총 <span id="cnt">{len(items)}</span>개 표시 중</div>
 <div class="grid" id="grid">{cards}</div>
@@ -232,7 +533,9 @@ def build_html(items):
 
 if __name__ == "__main__":
     os.makedirs("docs", exist_ok=True)
-    all_items = scrape_blueneon() + scrape_takefive() + scrape_kerouac() + scrape_spacemoo()
+    all_items = (scrape_blueneon() + scrape_takefive() + scrape_kerouac() + scrape_spacemoo() +
+                 scrape_babooshka() + scrape_aindahing() + scrape_stc() +
+                 scrape_se7en() + scrape_kapital_home())
 
     # 60일 이내 필터 + 최신순 정렬
     today = datetime.now(KST)
