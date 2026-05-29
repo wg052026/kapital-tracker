@@ -260,6 +260,12 @@ def scrape_se7en():
 
         # 패턴1: 상품 상세 링크 기반
         links = re.findall(r'href="(https://se7en\.jp/products/detail/(\d+))"', html)
+        # 디버그: 첫번째 상품 HTML 확인
+        if links:
+            pid0 = links[0][1]
+            idx0 = html.find(f'detail/{pid0}')
+            seg0 = html[max(0,idx0-300): idx0+1000]
+            print(f"  [SE7EN debug] first item seg: {repr(seg0[:600])}")
         for link, pid in links:
             if pid in seen: continue
             seen.add(pid)
@@ -340,6 +346,10 @@ def scrape_kapital_home():
         # li 태그 샘플
         li_sample = re.findall(r'<li[^>]*class="[^"]*item[^"]*"[^>]*>', html)[:3]
         print(f"  [debug] li.item samples: {li_sample}")
+        # 첫 번째 블록 내용 출력
+        first_block = block_pat.search(html)
+        if first_block:
+            print(f"  [debug] first block (500chars): {repr(first_block.group(1)[:500])}")
         # 링크 샘플
         link_sample = re.findall(r'href="(https://www\.kapital-webshop\.jp/item/[^"]+)"', html)[:3]
         print(f"  [debug] item links: {link_sample}")
