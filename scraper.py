@@ -16,6 +16,30 @@ def fetch_raw(url):
         print(f"  [WARN] {url} → {e}")
         return b""
 
+def load_date_cache():
+    """이전에 기록된 상품 날짜 캐시 로드"""
+    try:
+        import json
+        with open("docs/date_cache.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_date_cache(cache):
+    """상품 날짜 캐시 저장"""
+    import json
+    os.makedirs("docs", exist_ok=True)
+    with open("docs/date_cache.json", "w", encoding="utf-8") as f:
+        json.dump(cache, f, ensure_ascii=False, indent=2)
+
+def get_item_date(cache, source, item_id, today):
+    """캐시에서 날짜 조회, 없으면 오늘 날짜로 신규 등록"""
+    key = f"{source}:{item_id}"
+    if key not in cache:
+        cache[key] = today
+    return cache[key]
+
+
 def scrape_blueneon():
     print("[Blue Neon] scraping...")
     raw = fetch_raw("https://blueneon.jp/?mode=grp&gid=613974&sort=n")
@@ -213,8 +237,9 @@ def scrape_stc():
             "price": f"¥{mp.group(1)}" if mp else "-",
             "img": img, "link": link,
             "date": datetime.now(KST).strftime("%Y%m%d"),
-            "date_label": "신착"
+            "date_label": f"{datetime.now(KST).strftime('%y.%m.%d')} 신착"
         })
+    items = items[:10]
     print(f"  → {len(items)} items")
     return items
 
@@ -277,6 +302,7 @@ def scrape_se7en():
             mn = re.search(r'ec-shelfGrid__item-name[^>]*>\s*([^<]{2,80})', seg)
             if not mn: mn = re.search(r'<p[^>]*>\s*([^<]{4,80})\s*</p>', seg)
             img_raw = mi.group(1) if mi else ""
+            img = f"https://se7en.jp{img_raw}" if img_raw.startswith("/") else img_raw
             name = unescape(mn.group(1)).strip() if mn else f"상품 {pid}"
             items.append({
                 "source":"SE7EN","color":"#fb923c",
@@ -285,6 +311,8 @@ def scrape_se7en():
                 "date": datetime.now(KST).strftime("%Y%m%d"),
                 "date_label": "신착"
             })
+            if len(items) >= 10:
+                break
 
         print(f"  → {len(items)} items")
         return items
@@ -382,6 +410,8 @@ def scrape_kapital_home():
                 "date": datetime.now(KST).strftime("%Y%m%d"),
                 "date_label": "신착"
             })
+            if len(items) >= 10:
+                break
 
         print(f"  → {len(items)} items")
         return items
@@ -547,9 +577,27 @@ def build_html(items):
 
 if __name__ == "__main__":
     os.makedirs("docs", exist_ok=True)
+    today_str = datetime.now(KST).strftime("%Y%m%d")
+
+    # 날짜 캐시 로드
+    cache = load_date_cache()
+
     all_items = (scrape_blueneon() + scrape_takefive() + scrape_kerouac() + scrape_spacemoo() +
                  scrape_babooshka() + scrape_aindahing() + scrape_stc() +
                  scrape_se7en() + scrape_kapital_home())
+
+    # 날짜 없는 사이트는 캐시에서 날짜 조회 (새 상품이면 오늘 날짜 기록)
+    no_date_sources = {"S.T.C", "SE7EN", "KAPITAL 공홈"}
+    for item in all_items:
+        if item["source"] in no_date_sources:
+            # 상품 ID: link URL의 마지막 부분
+            item_id = item["link"].rstrip("/").split("/")[-1].split("?")[-1]
+            cached_date = get_item_date(cache, item["source"], item_id, today_str)
+            item["date"] = cached_date
+            item["date_label"] = f"{cached_date[2:4]}.{cached_date[4:6]}.{cached_date[6:8]} 신착"
+
+    # 캐시 저장
+    save_date_cache(cache)
 
     # 60일 이내 필터 + 최신순 정렬
     today = datetime.now(KST)
