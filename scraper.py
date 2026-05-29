@@ -10,7 +10,7 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 def fetch_raw(url):
     try:
         req = urllib.request.Request(url, headers=HEADERS)
-        with urllib.request.urlopen(req, timeout=15) as r:
+        with urllib.request.urlopen(req, timeout=25) as r:
             return r.read()
     except Exception as e:
         print(f"  [WARN] {url} → {e}")
@@ -181,7 +181,11 @@ def scrape_aindahing():
 
 def scrape_stc():
     print("[S.T.C] scraping...")
+    # 타임아웃 대응: 2회 시도
     raw = fetch_raw("https://www.net-stc.com/category/14/")
+    if not raw:
+        print("  재시도...")
+        raw = fetch_raw("https://www.net-stc.com/category/14/")
     if not raw: return []
     html = raw.decode("utf-8", errors="replace")
 
@@ -329,7 +333,7 @@ def scrape_kapital_home():
         # <p class="...name...">상품명</p>
         # <p class="...price...">가격円</p>
         price_pat = re.compile(r'([\d,]+)円')
-        block_pat = re.compile(r'<li[^>]*class="[^"]*item[^"]*"[^>]*>(.*?)</li>', re.DOTALL)
+        block_pat = re.compile(r'<li[^>]*class="item_list_box"[^>]*>(.*?)</li>', re.DOTALL)
 
         # 실제 HTML 구조 확인용 출력 (첫 2000자)
         print(f"  [debug] html length: {len(html)}")
@@ -345,18 +349,18 @@ def scrape_kapital_home():
         for block in block_pat.finditer(html):
             b  = block.group(1)
             ml = re.search(r'href="(https://www\.kapital-webshop\.jp/item/([^"]+)\.html)"', b)
-            mi = re.search(r'src="(https://www\.kapital-webshop\.jp[^"]+(?:_M|_S|_1)\.(jpg|png))"', b)
+            mi = re.search(r'src="(https://www\.kapital-webshop\.jp/[^"]+_M\.jpg)"', b)
             if not mi:
                 mi = re.search(r'src="(https://www\.kapital-webshop\.jp[^"]+\.(jpg|png))"', b)
-            mn = re.search(r'(?:item_?name|itemName)[^>]*>\s*(?:<[^>]+>)?\s*([^<]{4,80})', b)
+            mn = re.search(r'class="[^"]*name[^"]*"[^>]*>\s*([^<]{4,80})', b)
             if not mn:
                 mn = re.search(r'<p[^>]*>\s*([^<]{10,80})\s*</p>', b)
             mp = price_pat.search(b)
             if not ml: continue
-            code = ml.group(2)
-            if code in seen: continue
-            seen.add(code)
-            name  = unescape(mn.group(1)).strip() if mn else code
+            item_code = ml.group(2)
+            if item_code in seen: continue
+            seen.add(item_code)
+            name  = unescape(mn.group(1)).strip() if mn else item_code
             img   = mi.group(1) if mi else ""
             price = f"¥{mp.group(1)}" if mp else "-"
             items.append({
