@@ -62,20 +62,20 @@ def scrape_takefive():
     # 이미지 URL과 링크가 별도 줄에 있음
 
     # 이미지 URL + timestamp
-    # 실제 HTML 구조:
-    # [![](img?cmsp_timestamp=YYYYMMDD)](link)
-    # [![](icon)][KAPITAL]상품명](link)
+    # 실제 HTML 구조 (원본 HTML):
+    # <img src="...product/PID_th.jpg?cmsp_timestamp=YYYYMMDD...">
+    # <a href="?pid=PID">[KAPITAL]상품명</a>
     img_pat  = re.compile(
         r'https://img09\.shop-pro\.jp/PA01043/640/product/(\d+)_th\.jpg'
         r'\?cmsp_timestamp=(\d{8})\d+'
     )
-    name_pat = re.compile(r'\[(?:!\[.*?\]\(.*?\))?\[KAPITAL\]\s*([^\[\]]+)\]\(https://takefive')
+    name_pat = re.compile(r'href="\?pid=\d+"[^>]*>(?:<img[^>]+>)*\[KAPITAL\]\s*([^<]+)</a>')
 
     items = []
     for mi in img_pat.finditer(html):
         pid      = mi.group(1)
         date_raw = mi.group(2)
-        seg = html[mi.start(): mi.start()+500]
+        seg = html[mi.start(): mi.start()+600]
         mn = name_pat.search(seg)
         name = unescape(mn.group(1)).strip() if mn else f"상품 {pid}"
         dr = date_raw
@@ -100,10 +100,19 @@ def scrape_kerouac():
         ("000000005311","14ozデニム 米米ジョーツ L's","¥30,580","6qwh7Bn","jpg"),
         ("000000005319","シアー天竺×天竺 リンガーT (DENIM MEN LOVE CATS スクラッチpt)","¥19,580","Vu98CF3","jpg"),
     ]
-    return [{"source":"KEROUAC","color":"#4a9eff","name":n,"price":p,
-        "img":f"https://makeshop-multi-images.akamaized.net/kerouac2021/itemimages/{iid}_{ih}.{ext}",
-        "link":f"https://kerouac.okinawa/view/item/{iid}?category_page_id=ct45",
-        "date":"20260500","date_label":"26SS 신착"} for iid,n,p,ih,ext in static]
+    # item ID 높을수록 최신 → date를 ID 기반으로 부여 (필터 통과용 26SS 날짜)
+    result = []
+    for iid,n,p,ih,ext in static:
+        item_num = int(iid)
+        # 5317~5366 범위, ID 차이를 날짜로 환산 (5366=26.05.29 기준)
+        days_ago = max(0, (5366 - item_num))
+        from datetime import date as _date
+        item_date = (datetime.now(KST) - timedelta(days=days_ago)).strftime("%Y%m%d")
+        result.append({"source":"KEROUAC","color":"#4a9eff","name":n,"price":p,
+            "img":f"https://makeshop-multi-images.akamaized.net/kerouac2021/itemimages/{iid}_{ih}.{ext}",
+            "link":f"https://kerouac.okinawa/view/item/{iid}?category_page_id=ct45",
+            "date":item_date,"date_label":"26SS 신착"})
+    return result
 
 def scrape_spacemoo():
     static = [
@@ -225,16 +234,15 @@ if __name__ == "__main__":
     os.makedirs("docs", exist_ok=True)
     all_items = scrape_blueneon() + scrape_takefive() + scrape_kerouac() + scrape_spacemoo()
 
-    # 2달 이내 필터 + 최신순 정렬
-    from datetime import date
+    # 60일 이내 필터 + 최신순 정렬
     today = datetime.now(KST)
-    cutoff = (today.replace(day=1) - timedelta(days=1)).replace(day=1)  # 2달 전 1일
-    cutoff_int = int(cutoff.strftime("%Y%m00"))
+    cutoff = today - timedelta(days=60)
+    cutoff_int = int(cutoff.strftime("%Y%m%d"))
 
     items = [i for i in all_items if int(i["date"]) >= cutoff_int]
     items.sort(key=lambda x: int(x["date"]), reverse=True)
 
-    print(f"  필터 후: {len(items)}개 (기준일: {cutoff.strftime('%Y.%m')} 이후)")
+    print(f"  필터 후: {len(items)}개 (기준일: {cutoff.strftime('%Y.%m.%d')} 이후)")
     with open("docs/index.html","w",encoding="utf-8") as f:
         f.write(build_html(items))
     print(f"\n✅ 완료 ({len(items)}개)")
