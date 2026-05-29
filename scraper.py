@@ -223,7 +223,18 @@ def build_html(items):
 
 if __name__ == "__main__":
     os.makedirs("docs", exist_ok=True)
-    items = scrape_blueneon() + scrape_takefive() + scrape_kerouac() + scrape_spacemoo()
+    all_items = scrape_blueneon() + scrape_takefive() + scrape_kerouac() + scrape_spacemoo()
+
+    # 2달 이내 필터 + 최신순 정렬
+    from datetime import date
+    today = datetime.now(KST)
+    cutoff = (today.replace(day=1) - timedelta(days=1)).replace(day=1)  # 2달 전 1일
+    cutoff_int = int(cutoff.strftime("%Y%m00"))
+
+    items = [i for i in all_items if int(i["date"]) >= cutoff_int]
+    items.sort(key=lambda x: int(x["date"]), reverse=True)
+
+    print(f"  필터 후: {len(items)}개 (기준일: {cutoff.strftime('%Y.%m')} 이후)")
     with open("docs/index.html","w",encoding="utf-8") as f:
         f.write(build_html(items))
     print(f"\n✅ 완료 ({len(items)}개)")
