@@ -23,25 +23,29 @@ def scrape_blueneon():
     try: html = raw.decode("euc-jp")
     except: html = raw.decode("utf-8", errors="replace")
 
-    # 패턴: src="...product/PID_th.jpg?cmsp_timestamp=YYYYMMDD..."
-    img_pat   = re.compile(r'src="(https://img\d+\.shop-pro\.jp/PA01239/545/product/\d+_th\.jpg)\?cmsp_timestamp=(\d{8})\d+"')
-    link_pat  = re.compile(r'href="(https://blueneon\.jp/\?pid=\d+)"')
-    name_pat  = re.compile(r'\[([^\]]{3,80})\]')
+    # 실제 마크다운 변환 후 구조:
+    # [![](img?cmsp_timestamp=YYYYMMDD)](link)
+    # [KAPITAL - 상품명](link)
+    # 가격円
+    img_pat   = re.compile(r'https://img\d+\.shop-pro\.jp/PA01239/545/product/(\d+)_th\.jpg\?cmsp_timestamp=(\d{8})\d+')
+    name_pat  = re.compile(r'\[KAPITAL\s*-\s*([^\]]+)\]\(https://blueneon')
     price_pat = re.compile(r'([\d,]+)円')
 
-    items, pos = [], 0
-    while True:
-        mi = img_pat.search(html, pos)
-        if not mi: break
-        seg = html[mi.start(): mi.start()+700]
-        ml, mn, mp = link_pat.search(seg), name_pat.search(seg), price_pat.search(seg)
-        if ml and mn:
-            dr = mi.group(2)
-            name = unescape(mn.group(1)).replace("KAPITAL -","").replace("KAPITAL-","").strip()
-            items.append({"source":"BLUE NEON","color":"#5ecb8f","name":name,
-                "price":f"¥{mp.group(1)}" if mp else "-","img":mi.group(1),
-                "link":ml.group(1),"date":dr,"date_label":f"{dr[:4]}.{dr[4:6]}.{dr[6:8]}"})
-        pos = mi.end()
+    items = []
+    for mi in img_pat.finditer(html):
+        pid, dr = mi.group(1), mi.group(2)
+        seg = html[mi.start(): mi.start()+400]
+        mn = name_pat.search(seg)
+        mp = price_pat.search(seg)
+        name = unescape(mn.group(1)).strip() if mn else f"상품 {pid}"
+        items.append({
+            "source":"BLUE NEON","color":"#5ecb8f",
+            "name": name,
+            "price": f"¥{mp.group(1)}" if mp else "-",
+            "img": f"https://img15.shop-pro.jp/PA01239/545/product/{pid}_th.jpg",
+            "link": f"https://blueneon.jp/?pid={pid}",
+            "date": dr, "date_label": f"{dr[:4]}.{dr[4:6]}.{dr[6:8]}"
+        })
     print(f"  → {len(items)} items")
     return items
 
