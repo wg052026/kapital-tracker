@@ -4,12 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>KAPITAL 신상품 트래커</title>
-
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:#0e0e0e;color:#f0ede8;font-family:sans-serif;font-weight:300;min-height:100vh}
-header{border-bottom:1px solid #2a2a2a;padding:20px 24px;display:flex;justify-content:space-between;align-items:flex-end}
-.logo{font-size:28px;font-weight:700;letter-spacing:4px;line-height:1}
+header{border-bottom:1px solid #2a2a2a;padding:20px 24px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px}
+.logo{font-size:26px;font-weight:700;letter-spacing:4px;line-height:1}
 .logo span{color:#888;font-size:11px;font-weight:300;display:block;letter-spacing:2px;margin-top:3px}
 .meta{text-align:right;font-size:11px;color:#888;line-height:1.8}
 .legend{display:flex;gap:14px;padding:10px 24px;border-bottom:1px solid #2a2a2a;flex-wrap:wrap}
@@ -17,7 +16,7 @@ header{border-bottom:1px solid #2a2a2a;padding:20px 24px;display:flex;justify-co
 .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .filters{padding:10px 24px;display:flex;gap:7px;border-bottom:1px solid #2a2a2a;flex-wrap:wrap;align-items:center}
 .fl{font-size:11px;color:#888;letter-spacing:1px;margin-right:3px}
-button{background:transparent;border:1px solid #2a2a2a;color:#888;padding:4px 11px;font-size:11px;cursor:pointer;letter-spacing:1px;transition:all .15s;border-radius:2px}
+button{background:transparent;border:1px solid #2a2a2a;color:#888;padding:4px 11px;font-size:11px;cursor:pointer;letter-spacing:1px;transition:all .15s;border-radius:2px;font-family:sans-serif}
 button:hover,button.active{border-color:#f0ede8;color:#f0ede8}
 .cbar{padding:7px 24px;font-size:12px;color:#888;border-bottom:1px solid #2a2a2a}
 .cbar span{color:#f0ede8;font-weight:500}
@@ -38,12 +37,11 @@ button:hover,button.active{border-color:#f0ede8;color:#f0ede8}
 footer{padding:14px 24px;border-top:1px solid #2a2a2a;font-size:11px;color:#888;text-align:center;letter-spacing:1px}
 .hidden{display:none!important}
 </style>
-
 </head>
 <body>
 <header>
   <div class="logo">KAPITAL <span>NEW ARRIVALS TRACKER</span></div>
-  <div class="meta">업데이트: 2026.05.29 23:17 KST<br>총 12개 · 등록일 최신순</div>
+  <div class="meta">업데이트: 2026.05.29 23:23 KST<br>총 32개 · 등록일 최신순</div>
 </header>
 <div class="legend">
   <div class="ld"><div class="dot" style="background:#5ecb8f"></div>BLUE NEON</div>
@@ -59,8 +57,28 @@ footer{padding:14px 24px;border-top:1px solid #2a2a2a;font-size:11px;color:#888;
   <button data-source="TAKE FIVE" onclick="filt('TAKE FIVE')">TAKE FIVE</button>
   <button data-source="SPACE MOO" onclick="filt('SPACE MOO')">SPACE MOO</button>
 </div>
-<div class="cbar">총 <span id="cnt">12</span>개 표시 중</div>
-<div class="grid" id="grid"><a class="card" data-source="KEROUAC" data-date="20260500" href="https://kerouac.okinawa/view/item/000000005317?category_page_id=ct45" target="_blank"><div class="ci"><img src="https://makeshop-multi-images.akamaized.net/kerouac2021/itemimages/000000005317_zdfvJ4a.png" onerror="this.style.display='none'"><div class="sd" style="background:#4a9eff"></div></div><div class="cb2"><span class="st" style="color:#4a9eff">KEROUAC</span><p class="cn">14ozブラック×ブラックデニム 5P ラットフレアパンツ (ヒッピーINSANEリメイク)</p><div class="cf"><span class="cp">¥174,680</span><span class="db">26SS 신착</span></div></div></a>
+<div class="cbar">총 <span id="cnt">32</span>개 표시 중</div>
+<div class="grid" id="grid"><a class="card" data-source="TAKE FIVE" data-date="20260529" href="https://takefive.jp/?pid=192008283" target="_blank"><div class="ci"><img src="https://img09.shop-pro.jp/PA01043/640/product/192008283_th.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#f5c842"></div></div><div class="cb2"><span class="st" style="color:#f5c842">TAKE FIVE</span><p class="cn">상품 192008283</p><div class="cf"><span class="cp">-</span><span class="db">2026.05.29</span></div></div></a>
+<a class="card" data-source="TAKE FIVE" data-date="20260524" href="https://takefive.jp/?pid=191939668" target="_blank"><div class="ci"><img src="https://img09.shop-pro.jp/PA01043/640/product/191939668_th.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#f5c842"></div></div><div class="cb2"><span class="st" style="color:#f5c842">TAKE FIVE</span><p class="cn">상품 191939668</p><div class="cf"><span class="cp">-</span><span class="db">2026.05.24</span></div></div></a>
+<a class="card" data-source="TAKE FIVE" data-date="20260524" href="https://takefive.jp/?pid=191938945" target="_blank"><div class="ci"><img src="https://img09.shop-pro.jp/PA01043/640/product/191938945_th.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#f5c842"></div></div><div class="cb2"><span class="st" style="color:#f5c842">TAKE FIVE</span><p class="cn">상품 191938945</p><div class="cf"><span class="cp">-</span><span class="db">2026.05.24</span></div></div></a>
+<a class="card" data-source="TAKE FIVE" data-date="20260522" href="https://takefive.jp/?pid=191925628" target="_blank"><div class="ci"><img src="https://img09.shop-pro.jp/PA01043/640/product/191925628_th.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#f5c842"></div></div><div class="cb2"><span class="st" style="color:#f5c842">TAKE FIVE</span><p class="cn">상품 191925628</p><div class="cf"><span class="cp">-</span><span class="db">2026.05.22</span></div></div></a>
+<a class="card" data-source="TAKE FIVE" data-date="20260513" href="https://takefive.jp/?pid=191816332" target="_blank"><div class="ci"><img src="https://img09.shop-pro.jp/PA01043/640/product/191816332_th.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#f5c842"></div></div><div class="cb2"><span class="st" style="color:#f5c842">TAKE FIVE</span><p class="cn">상품 191816332</p><div class="cf"><span class="cp">-</span><span class="db">2026.05.13</span></div></div></a>
+<a class="card" data-source="TAKE FIVE" data-date="20260513" href="https://takefive.jp/?pid=191815389" target="_blank"><div class="ci"><img src="https://img09.shop-pro.jp/PA01043/640/product/191815389_th.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#f5c842"></div></div><div class="cb2"><span class="st" style="color:#f5c842">TAKE FIVE</span><p class="cn">상품 191815389</p><div class="cf"><span class="cp">-</span><span class="db">2026.05.13</span></div></div></a>
+<a class="card" data-source="TAKE FIVE" data-date="20260510" href="https://takefive.jp/?pid=191782821" target="_blank"><div class="ci"><img src="https://img09.shop-pro.jp/PA01043/640/product/191782821_th.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#f5c842"></div></div><div class="cb2"><span class="st" style="color:#f5c842">TAKE FIVE</span><p class="cn">상품 191782821</p><div class="cf"><span class="cp">-</span><span class="db">2026.05.10</span></div></div></a>
+<a class="card" data-source="TAKE FIVE" data-date="20260503" href="https://takefive.jp/?pid=191716128" target="_blank"><div class="ci"><img src="https://img09.shop-pro.jp/PA01043/640/product/191716128_th.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#f5c842"></div></div><div class="cb2"><span class="st" style="color:#f5c842">TAKE FIVE</span><p class="cn">상품 191716128</p><div class="cf"><span class="cp">-</span><span class="db">2026.05.03</span></div></div></a>
+<a class="card" data-source="TAKE FIVE" data-date="20260502" href="https://takefive.jp/?pid=191707096" target="_blank"><div class="ci"><img src="https://img09.shop-pro.jp/PA01043/640/product/191707096_th.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#f5c842"></div></div><div class="cb2"><span class="st" style="color:#f5c842">TAKE FIVE</span><p class="cn">상품 191707096</p><div class="cf"><span class="cp">-</span><span class="db">2026.05.02</span></div></div></a>
+<a class="card" data-source="TAKE FIVE" data-date="20260425" href="https://takefive.jp/?pid=191609023" target="_blank"><div class="ci"><img src="https://img09.shop-pro.jp/PA01043/640/product/191609023_th.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#f5c842"></div></div><div class="cb2"><span class="st" style="color:#f5c842">TAKE FIVE</span><p class="cn">상품 191609023</p><div class="cf"><span class="cp">-</span><span class="db">2026.04.25</span></div></div></a>
+<a class="card" data-source="TAKE FIVE" data-date="20260425" href="https://takefive.jp/?pid=191607123" target="_blank"><div class="ci"><img src="https://img09.shop-pro.jp/PA01043/640/product/191607123_th.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#f5c842"></div></div><div class="cb2"><span class="st" style="color:#f5c842">TAKE FIVE</span><p class="cn">상품 191607123</p><div class="cf"><span class="cp">-</span><span class="db">2026.04.25</span></div></div></a>
+<a class="card" data-source="TAKE FIVE" data-date="20260423" href="https://takefive.jp/?pid=191576208" target="_blank"><div class="ci"><img src="https://img09.shop-pro.jp/PA01043/640/product/191576208_th.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#f5c842"></div></div><div class="cb2"><span class="st" style="color:#f5c842">TAKE FIVE</span><p class="cn">상품 191576208</p><div class="cf"><span class="cp">-</span><span class="db">2026.04.23</span></div></div></a>
+<a class="card" data-source="TAKE FIVE" data-date="20260406" href="https://takefive.jp/?pid=191312498" target="_blank"><div class="ci"><img src="https://img09.shop-pro.jp/PA01043/640/product/191312498_th.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#f5c842"></div></div><div class="cb2"><span class="st" style="color:#f5c842">TAKE FIVE</span><p class="cn">상품 191312498</p><div class="cf"><span class="cp">-</span><span class="db">2026.04.06</span></div></div></a>
+<a class="card" data-source="TAKE FIVE" data-date="20260406" href="https://takefive.jp/?pid=191312235" target="_blank"><div class="ci"><img src="https://img09.shop-pro.jp/PA01043/640/product/191312235_th.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#f5c842"></div></div><div class="cb2"><span class="st" style="color:#f5c842">TAKE FIVE</span><p class="cn">상품 191312235</p><div class="cf"><span class="cp">-</span><span class="db">2026.04.06</span></div></div></a>
+<a class="card" data-source="TAKE FIVE" data-date="20260403" href="https://takefive.jp/?pid=191246208" target="_blank"><div class="ci"><img src="https://img09.shop-pro.jp/PA01043/640/product/191246208_th.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#f5c842"></div></div><div class="cb2"><span class="st" style="color:#f5c842">TAKE FIVE</span><p class="cn">상품 191246208</p><div class="cf"><span class="cp">-</span><span class="db">2026.04.03</span></div></div></a>
+<a class="card" data-source="TAKE FIVE" data-date="20260401" href="https://takefive.jp/?pid=191207219" target="_blank"><div class="ci"><img src="https://img09.shop-pro.jp/PA01043/640/product/191207219_th.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#f5c842"></div></div><div class="cb2"><span class="st" style="color:#f5c842">TAKE FIVE</span><p class="cn">상품 191207219</p><div class="cf"><span class="cp">-</span><span class="db">2026.04.01</span></div></div></a>
+<a class="card" data-source="TAKE FIVE" data-date="20260320" href="https://takefive.jp/?pid=190959757" target="_blank"><div class="ci"><img src="https://img09.shop-pro.jp/PA01043/640/product/190959757_th.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#f5c842"></div></div><div class="cb2"><span class="st" style="color:#f5c842">TAKE FIVE</span><p class="cn">상품 190959757</p><div class="cf"><span class="cp">-</span><span class="db">2026.03.20</span></div></div></a>
+<a class="card" data-source="TAKE FIVE" data-date="20260312" href="https://takefive.jp/?pid=190857129" target="_blank"><div class="ci"><img src="https://img09.shop-pro.jp/PA01043/640/product/190857129_th.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#f5c842"></div></div><div class="cb2"><span class="st" style="color:#f5c842">TAKE FIVE</span><p class="cn">상품 190857129</p><div class="cf"><span class="cp">-</span><span class="db">2026.03.12</span></div></div></a>
+<a class="card" data-source="TAKE FIVE" data-date="20260312" href="https://takefive.jp/?pid=190857108" target="_blank"><div class="ci"><img src="https://img09.shop-pro.jp/PA01043/640/product/190857108_th.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#f5c842"></div></div><div class="cb2"><span class="st" style="color:#f5c842">TAKE FIVE</span><p class="cn">상품 190857108</p><div class="cf"><span class="cp">-</span><span class="db">2026.03.12</span></div></div></a>
+<a class="card" data-source="TAKE FIVE" data-date="20260226" href="https://takefive.jp/?pid=190691818" target="_blank"><div class="ci"><img src="https://img09.shop-pro.jp/PA01043/640/product/190691818_th.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#f5c842"></div></div><div class="cb2"><span class="st" style="color:#f5c842">TAKE FIVE</span><p class="cn">상품 190691818</p><div class="cf"><span class="cp">-</span><span class="db">2026.02.26</span></div></div></a>
+<a class="card" data-source="KEROUAC" data-date="20260500" href="https://kerouac.okinawa/view/item/000000005317?category_page_id=ct45" target="_blank"><div class="ci"><img src="https://makeshop-multi-images.akamaized.net/kerouac2021/itemimages/000000005317_zdfvJ4a.png" onerror="this.style.display='none'"><div class="sd" style="background:#4a9eff"></div></div><div class="cb2"><span class="st" style="color:#4a9eff">KEROUAC</span><p class="cn">14ozブラック×ブラックデニム 5P ラットフレアパンツ (ヒッピーINSANEリメイク)</p><div class="cf"><span class="cp">¥174,680</span><span class="db">26SS 신착</span></div></div></a>
 <a class="card" data-source="KEROUAC" data-date="20260500" href="https://kerouac.okinawa/view/item/000000005333?category_page_id=ct45" target="_blank"><div class="ci"><img src="https://makeshop-multi-images.akamaized.net/kerouac2021/itemimages/000000005333_EAucFSS.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#4a9eff"></div></div><div class="cb2"><span class="st" style="color:#4a9eff">KEROUAC</span><p class="cn">ディアレザー プエブロインサボサンダル / キャメル</p><div class="cf"><span class="cp">¥78,980</span><span class="db">26SS 신착</span></div></div></a>
 <a class="card" data-source="KEROUAC" data-date="20260500" href="https://kerouac.okinawa/view/item/000000005334?category_page_id=ct45" target="_blank"><div class="ci"><img src="https://makeshop-multi-images.akamaized.net/kerouac2021/itemimages/000000005334_OcsGTUZ.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#4a9eff"></div></div><div class="cb2"><span class="st" style="color:#4a9eff">KEROUAC</span><p class="cn">ディアレザー プエブロインサボサンダル / ブラック</p><div class="cf"><span class="cp">¥78,980</span><span class="db">26SS 신착</span></div></div></a>
 <a class="card" data-source="KEROUAC" data-date="20260500" href="https://kerouac.okinawa/view/item/000000005326?category_page_id=ct45" target="_blank"><div class="ci"><img src="https://makeshop-multi-images.akamaized.net/kerouac2021/itemimages/000000005326_ohTPnek.jpg" onerror="this.style.display='none'"><div class="sd" style="background:#4a9eff"></div></div><div class="cb2"><span class="st" style="color:#4a9eff">KEROUAC</span><p class="cn">シルクレーヨン トグルーマイレpt 長袖開襟シャツ</p><div class="cf"><span class="cp">¥42,680</span><span class="db">26SS 신착</span></div></div></a>
@@ -77,7 +95,6 @@ footer{padding:14px 24px;border-top:1px solid #2a2a2a;font-size:11px;color:#888;
   ※ 캐피탈 공홈·SE7EN: robots 차단으로 수집 불가
 </div>
 <footer>KAPITAL TRACKER · GitHub Actions 매일 07:00 KST 자동 업데이트</footer>
-
 <script>
 var cs=Array.from(document.querySelectorAll('.card[data-source]'));
 cs.sort(function(a,b){return parseInt(b.dataset.date)-parseInt(a.dataset.date)});
@@ -91,6 +108,5 @@ function filt(src){
   document.getElementById('cnt').textContent=n;
 }
 </script>
-
 </body>
 </html>
