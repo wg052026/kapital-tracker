@@ -185,36 +185,31 @@ def scrape_stc():
     if not raw: return []
     html = raw.decode("utf-8", errors="replace")
 
-    # s.t.c는 일반 HTML, 이미지 경로 다름
-    # <img src="/images/material/상품코드.jpg">
-    # <a href="/item/상품코드/">상품명</a>
-    item_pat = re.compile(
-        r'<a href="(https://www\.net-stc\.com/item/([^/]+)/)"[^>]*>\s*([^<]{4,100})\s*</a>.*?'
-        r'販売価格:(\d[\d,]*)円',
+    block_pat = re.compile(
+        r'src="(https://www\.net-stc\.com/images/material/(?![\d/])[^"]+\.jpg)"'
+        r'.*?href="(https://www\.net-stc\.com/item/([^/]+)/)"[^>]*>\s*([^<]{4,100})',
         re.DOTALL
     )
-    img_pat = re.compile(r'src="(https://www\.net-stc\.com/images/material/[^"]+\.jpg)"')
+    price_pat = re.compile(r'([\d,]+)円')
 
     items, seen = [], set()
-    # 블록 단위로 파싱
-    blocks = re.split(r'(?=<a href="https://www\.net-stc\.com/item/)', html)
-    for block in blocks:
-        ml = re.match(r'<a href="(https://www\.net-stc\.com/item/([^/]+)/)"[^>]*>\s*([^<]{4,100})', block)
-        if not ml: continue
-        link = ml.group(1)
-        code = ml.group(2)
-        name = unescape(ml.group(3)).strip()
+    for m in block_pat.finditer(html):
+        img  = m.group(1)
+        link = m.group(2)
+        code = m.group(3)
+        name = unescape(m.group(4)).strip()
         if code in seen: continue
         seen.add(code)
-        mi = img_pat.search(block[:500])
-        mp = re.search(r'販売価格:([\d,]+)円', block[:300])
-        img = mi.group(1) if mi else ""
-        dr = datetime.now(KST).strftime("%Y%m%d")
+        seg = html[m.start(): m.start()+400]
+        mp  = price_pat.search(seg)
+        name = re.sub(r'^KAPITAL\s*\(キャピタル\)\s*', '', name).strip()
         items.append({
             "source":"S.T.C","color":"#34d399",
-            "name": name, "price": f"¥{mp.group(1)}" if mp else "-",
+            "name": name,
+            "price": f"¥{mp.group(1)}" if mp else "-",
             "img": img, "link": link,
-            "date": dr, "date_label": "신착"
+            "date": datetime.now(KST).strftime("%Y%m%d"),
+            "date_label": "신착"
         })
     print(f"  → {len(items)} items")
     return items
@@ -326,48 +321,40 @@ def scrape_kapital_home():
         html = driver.page_source
         driver.quit()
 
-        # 상품 파싱
-        # 이미지: /client_info/KAPITAL/view/userweb/images/item/...
-        img_pat  = re.compile(r'src="(/client_info/KAPITAL/[^"]+/(\d{6,})[^"]*\.(jpg|png))"')
-        name_pat = re.compile(r'class="[^"]*item_?name[^"]*"[^>]*>\s*([^<]{4,80})')
-        price_pat= re.compile(r'([\d,]+)円')
-        link_pat = re.compile(r'href="(/item/([A-Z0-9_\-]+)\.html)"')
-
-        # 더 단순한 방법: 신착 아이템 링크 파싱
-        item_pat = re.compile(
-            r'href="(https://www\.kapital-webshop\.jp/item/([^"]+)\.html)"[^>]*>'
-            r'.*?<img[^>]+src="([^"]+)"[^>]*>'
-            r'.*?<[^>]+class="[^"]*name[^"]*"[^>]*>\s*([^<]+)',
-            re.DOTALL
-        )
+        # 상품 파싱 - 캐피탈 공홈 구조:
+        # <li class="...item..."> 블록 안에
+        # <a href="/item/코드.html"><img src="...코드_M.jpg"></a>
+        # <p class="...name...">상품명</p>
+        # <p class="...price...">가격円</p>
+        price_pat = re.compile(r'([\d,]+)円')
+        block_pat = re.compile(r'<li[^>]*class="[^"]*item[^"]*"[^>]*>(.*?)</li>', re.DOTALL)
 
         items = []
-        # 방법 2: 개별 상품 블록 파싱
-        block_pat = re.compile(
-            r'<li[^>]*class="[^"]*item[^"]*"[^>]*>(.*?)</li>',
-            re.DOTALL
-        )
+        seen  = set()
         for block in block_pat.finditer(html):
-            b = block.group(1)
-            ml = re.search(r'href="(https://www\.kapital-webshop\.jp/item/[^"]+\.html)"', b)
-            mi = re.search(r'src="(https://www\.kapital-webshop\.jp/[^"]+_M\.(jpg|png))"', b)
-            mn = re.search(r'class="[^"]*item_?name[^"]*"[^>]*>\s*<[^>]+>\s*([^<]{4,80})', b)
+            b  = block.group(1)
+            ml = re.search(r'href="(https://www\.kapital-webshop\.jp/item/([^"]+)\.html)"', b)
+            mi = re.search(r'src="(https://www\.kapital-webshop\.jp[^"]+(?:_M|_S|_1)\.(jpg|png))"', b)
+            if not mi:
+                mi = re.search(r'src="(https://www\.kapital-webshop\.jp[^"]+\.(jpg|png))"', b)
+            mn = re.search(r'(?:item_?name|itemName)[^>]*>\s*(?:<[^>]+>)?\s*([^<]{4,80})', b)
             if not mn:
-                mn = re.search(r'class="[^"]*item_?name[^"]*"[^>]*>\s*([^<]{4,80})', b)
+                mn = re.search(r'<p[^>]*>\s*([^<]{10,80})\s*</p>', b)
             mp = price_pat.search(b)
-
-            if ml and mn:
-                name = unescape(mn.group(1)).strip()
-                img  = mi.group(1) if mi else ""
-                link = ml.group(1)
-                price= f"¥{mp.group(1)}" if mp else "-"
-                items.append({
-                    "source":"KAPITAL 공홈","color":"#ff6b6b",
-                    "name": name, "price": price,
-                    "img": img, "link": link,
-                    "date": datetime.now(KST).strftime("%Y%m%d"),
-                    "date_label": "신착"
-                })
+            if not ml: continue
+            code = ml.group(2)
+            if code in seen: continue
+            seen.add(code)
+            name  = unescape(mn.group(1)).strip() if mn else code
+            img   = mi.group(1) if mi else ""
+            price = f"¥{mp.group(1)}" if mp else "-"
+            items.append({
+                "source":"KAPITAL 공홈","color":"#ff6b6b",
+                "name": name, "price": price,
+                "img": img, "link": ml.group(1),
+                "date": datetime.now(KST).strftime("%Y%m%d"),
+                "date_label": "신착"
+            })
 
         print(f"  → {len(items)} items")
         return items
@@ -471,7 +458,7 @@ function filtDays(days){
 }
 
 // 초기 3일 필터 적용
-applyFilter();
+filtDays(3);
 </script>"""
 
 def build_html(items):
@@ -526,7 +513,7 @@ def build_html(items):
   ※ Blue Neon·Take Five: 이미지 타임스탬프 기준 | Kerouac: 날짜 미노출 → 26SS 신착 | Space Moo: 입고일 기준<br>
   ※ 캐피탈 공홈·SE7EN: robots 차단으로 수집 불가
 </div>
-<footer>KAPITAL TRACKER · GitHub Actions 매일 07:00 KST 자동 업데이트</footer>
+<footer>KAPITAL TRACKER · GitHub Actions 6시간마다 자동 업데이트</footer>
 {JS}
 </body>
 </html>"""
