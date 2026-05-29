@@ -272,11 +272,11 @@ def scrape_se7en():
             # 해당 블록에서 이미지+이름 찾기
             idx = html.find(f'detail/{pid}')
             seg = html[max(0,idx-200): idx+800]
-            mi = re.search(r'src="(/html/upload/save_image/[^"]+)"|' +
-                           r'src="(https://se7en\.jp/[^"]+\.(?:jpg|png|webp))"', seg)
-            mn = re.search(r'<p[^>]*>\s*([^<]{4,80})\s*</p>', seg)
-            img_raw = (mi.group(1) or mi.group(2)) if mi else ""
-            img = f"https://se7en.jp{img_raw}" if img_raw and img_raw.startswith("/") else img_raw
+            mi = re.search(r'src="(/html/upload/save_image/[^"]+)"', seg)
+            if not mi: mi = re.search(r'src="(https://se7en\.jp/[^"]+\.(?:jpg|png|webp))"', seg)
+            mn = re.search(r'ec-shelfGrid__item-name[^>]*>\s*([^<]{2,80})', seg)
+            if not mn: mn = re.search(r'<p[^>]*>\s*([^<]{4,80})\s*</p>', seg)
+            img_raw = mi.group(1) if mi else ""
             name = unescape(mn.group(1)).strip() if mn else f"상품 {pid}"
             items.append({
                 "source":"SE7EN","color":"#fb923c",
