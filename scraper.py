@@ -274,7 +274,6 @@ def scrape_se7en():
             seg = html[max(0,idx-200): idx+800]
             mi = re.search(r'src="(/html/upload/save_image/[^"]+)"|' +
                            r'src="(https://se7en\.jp/[^"]+\.(?:jpg|png|webp))"', seg)
-                           r'src="(https://se7en\.jp/[^"]+\.(?:jpg|png|webp))"', seg)
             mn = re.search(r'<p[^>]*>\s*([^<]{4,80})\s*</p>', seg)
             img_raw = (mi.group(1) or mi.group(2)) if mi else ""
             img = f"https://se7en.jp{img_raw}" if img_raw and img_raw.startswith("/") else img_raw
