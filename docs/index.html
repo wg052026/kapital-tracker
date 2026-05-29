@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KAPITAL 신상품 트래커</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0e0e0e;--sur:#1a1a1a;--bd:#2a2a2a;--txt:#f0ede8;--mu:#888}
+body{background:var(--bg);color:var(--txt);font-family:'Noto Sans KR',sans-serif;font-weight:300}
+header{border-bottom:1px solid var(--bd);padding:22px 28px;display:flex;justify-content:space-between;align-items:flex-end}
+.logo{font-family:'Bebas Neue',cursive;font-size:36px;letter-spacing:4px;line-height:1}
+.logo span{color:var(--mu);font-size:12px;font-family:'Noto Sans KR',sans-serif;display:block;letter-spacing:2px;margin-top:3px}
+.meta{text-align:right;font-size:11px;color:var(--mu);line-height:1.8}
+.legend{display:flex;gap:16px;padding:10px 28px;border-bottom:1px solid var(--bd);flex-wrap:wrap}
+.ld{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mu)}
+.dot{width:7px;height:7px;border-radius:50%}
+.filters{padding:10px 28px;display:flex;gap:7px;border-bottom:1px solid var(--bd);flex-wrap:wrap;align-items:center}
+.fl{font-size:11px;color:var(--mu);letter-spacing:1px;margin-right:3px}
+.fb{background:transparent;border:1px solid var(--bd);color:var(--mu);padding:4px 11px;font-size:11px;font-family:'Noto Sans KR',sans-serif;cursor:pointer;letter-spacing:1px;transition:all .15s;border-radius:2px}
+.fb:hover,.fb.active{border-color:var(--txt);color:var(--txt)}
+.cb{padding:7px 28px;font-size:12px;color:var(--mu);border-bottom:1px solid var(--bd)}
+.cb span{color:var(--txt);font-weight:500}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:1px;background:var(--bd)}
+.card{background:var(--bg);transition:background .15s;position:relative;display:block;text-decoration:none;color:inherit}
+.card:hover{background:var(--sur)}
+.ci{width:100%;aspect-ratio:1;overflow:hidden;position:relative;background:var(--sur)}
+.ci img{width:100%;height:100%;object-fit:cover;transition:transform .4s;display:block}
+.card:hover .ci img{transform:scale(1.04)}
+.no-img{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#333;font-size:10px;letter-spacing:2px}
+.sd{position:absolute;top:9px;left:9px;width:7px;height:7px;border-radius:50%}
+.cb2{padding:10px 12px 12px;border-top:1px solid var(--bd)}
+.st{font-size:9px;letter-spacing:2px;margin-bottom:4px;font-weight:500;display:block}
+.cn{font-size:11px;line-height:1.5;color:var(--txt);margin-bottom:7px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-weight:300}
+.cf{display:flex;justify-content:space-between;align-items:center}
+.cp{font-size:12px;font-weight:500}
+.db{font-size:9px;color:var(--mu);border:1px solid var(--bd);padding:2px 5px;border-radius:2px;white-space:nowrap}
+.notice{padding:14px 28px;font-size:11px;color:var(--mu);line-height:1.8;border-top:1px solid var(--bd)}
+footer{padding:14px 28px;border-top:1px solid var(--bd);font-size:11px;color:var(--mu);text-align:center;letter-spacing:1px}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">KAPITAL <span>NEW ARRIVALS TRACKER</span></div>
+  <div class="meta">업데이트: 2026.05.29 16:02 JST<br>총 12개 · 등록일 최신순</div>
+</header>
+<div class="legend">
+  <div class="ld"><div class="dot" style="background:#5ecb8f"></div>BLUE NEON</div>
+  <div class="ld"><div class="dot" style="background:#4a9eff"></div>KEROUAC</div>
+  <div class="ld"><div class="dot" style="background:#f5c842"></div>TAKE FIVE</div>
+  <div class="ld"><div class="dot" style="background:#c084fc"></div>SPACE MOO</div>
+</div>
+<div class="filters">
+  <span class="fl">FILTER</span>
+  <button class="fb active" data-source="ALL" onclick="filt('ALL')">ALL</button>
+  <button class="fb" data-source="BLUE NEON" onclick="filt('BLUE NEON')">BLUE NEON</button>
+  <button class="fb" data-source="KEROUAC" onclick="filt('KEROUAC')">KEROUAC</button>
+  <button class="fb" data-source="TAKE FIVE" onclick="filt('TAKE FIVE')">TAKE FIVE</button>
+  <button class="fb" data-source="SPACE MOO" onclick="filt('SPACE MOO')">SPACE MOO</button>
+</div>
+<div class="cb">총 <span id="cnt">12</span>개 표시 중</div>
+<div class="grid" id="grid"><a class="card" data-source="KEROUAC" data-date="20260500" href="https://kerouac.okinawa/view/item/000000005317?category_page_id=ct45" target="_blank">
+  <div class="card-img"><img src="https://makeshop-multi-images.akamaized.net/kerouac2021/itemimages/000000005317_zdfvJ4a.png" alt="" onerror="this.parentNode.innerHTML='<div class=no-img>NO IMAGE</div>'"><div class="source-dot" style="background:#4a9eff"></div></div>
+  <div class="card-body">
+    <span class="source-tag" style="color:#4a9eff">KEROUAC</span>
+    <p class="card-name">14ozブラック×ブラックデニム 5P ラットフレアパンツ (ヒッピーINSANEリメイク)</p>
+    <div class="card-footer"><span class="card-price">¥174,680</span><span class="date-badge">26SS 신착</span></div>
+  </div>
+</a>
+<a class="card" data-source="KEROUAC" data-date="20260500" href="https://kerouac.okinawa/view/item/000000005333?category_page_id=ct45" target="_blank">
+  <div class="card-img"><img src="https://makeshop-multi-images.akamaized.net/kerouac2021/itemimages/000000005333_EAucFSS.jpg" alt="" onerror="this.parentNode.innerHTML='<div class=no-img>NO IMAGE</div>'"><div class="source-dot" style="background:#4a9eff"></div></div>
+  <div class="card-body">
+    <span class="source-tag" style="color:#4a9eff">KEROUAC</span>
+    <p class="card-name">ディアレザー プエブロインサボサンダル / キャメル</p>
+    <div class="card-footer"><span class="card-price">¥78,980</span><span class="date-badge">26SS 신착</span></div>
+  </div>
+</a>
+<a class="card" data-source="KEROUAC" data-date="20260500" href="https://kerouac.okinawa/view/item/000000005334?category_page_id=ct45" target="_blank">
+  <div class="card-img"><img src="https://makeshop-multi-images.akamaized.net/kerouac2021/itemimages/000000005334_OcsGTUZ.jpg" alt="" onerror="this.parentNode.innerHTML='<div class=no-img>NO IMAGE</div>'"><div class="source-dot" style="background:#4a9eff"></div></div>
+  <div class="card-body">
+    <span class="source-tag" style="color:#4a9eff">KEROUAC</span>
+    <p class="card-name">ディアレザー プエブロインサボサンダル / ブラック</p>
+    <div class="card-footer"><span class="card-price">¥78,980</span><span class="date-badge">26SS 신착</span></div>
+  </div>
+</a>
+<a class="card" data-source="KEROUAC" data-date="20260500" href="https://kerouac.okinawa/view/item/000000005326?category_page_id=ct45" target="_blank">
+  <div class="card-img"><img src="https://makeshop-multi-images.akamaized.net/kerouac2021/itemimages/000000005326_ohTPnek.jpg" alt="" onerror="this.parentNode.innerHTML='<div class=no-img>NO IMAGE</div>'"><div class="source-dot" style="background:#4a9eff"></div></div>
+  <div class="card-body">
+    <span class="source-tag" style="color:#4a9eff">KEROUAC</span>
+    <p class="card-name">シルクレーヨン トグルーマイレpt 長袖開襟シャツ</p>
+    <div class="card-footer"><span class="card-price">¥42,680</span><span class="date-badge">26SS 신착</span></div>
+  </div>
+</a>
+<a class="card" data-source="KEROUAC" data-date="20260500" href="https://kerouac.okinawa/view/item/000000005325?category_page_id=ct45" target="_blank">
+  <div class="card-img"><img src="https://makeshop-multi-images.akamaized.net/kerouac2021/itemimages/000000005325_23YUH5E.jpg" alt="" onerror="this.parentNode.innerHTML='<div class=no-img>NO IMAGE</div>'"><div class="source-dot" style="background:#4a9eff"></div></div>
+  <div class="card-body">
+    <span class="source-tag" style="color:#4a9eff">KEROUAC</span>
+    <p class="card-name">シルクレーヨン トグルーマイレpt 半袖開襟シャツ</p>
+    <div class="card-footer"><span class="card-price">¥37,180</span><span class="date-badge">26SS 신착</span></div>
+  </div>
+</a>
+<a class="card" data-source="KEROUAC" data-date="20260500" href="https://kerouac.okinawa/view/item/000000005311?category_page_id=ct45" target="_blank">
+  <div class="card-img"><img src="https://makeshop-multi-images.akamaized.net/kerouac2021/itemimages/000000005311_6qwh7Bn.jpg" alt="" onerror="this.parentNode.innerHTML='<div class=no-img>NO IMAGE</div>'"><div class="source-dot" style="background:#4a9eff"></div></div>
+  <div class="card-body">
+    <span class="source-tag" style="color:#4a9eff">KEROUAC</span>
+    <p class="card-name">14ozデニム 米米ジョーツ L's</p>
+    <div class="card-footer"><span class="card-price">¥30,580</span><span class="date-badge">26SS 신착</span></div>
+  </div>
+</a>
+<a class="card" data-source="KEROUAC" data-date="20260500" href="https://kerouac.okinawa/view/item/000000005319?category_page_id=ct45" target="_blank">
+  <div class="card-img"><img src="https://makeshop-multi-images.akamaized.net/kerouac2021/itemimages/000000005319_Vu98CF3.jpg" alt="" onerror="this.parentNode.innerHTML='<div class=no-img>NO IMAGE</div>'"><div class="source-dot" style="background:#4a9eff"></div></div>
+  <div class="card-body">
+    <span class="source-tag" style="color:#4a9eff">KEROUAC</span>
+    <p class="card-name">シアー天竺×天竺 リンガーT (DENIM MEN LOVE CATS スクラッチpt)</p>
+    <div class="card-footer"><span class="card-price">¥19,580</span><span class="date-badge">26SS 신착</span></div>
+  </div>
+</a>
+<a class="card" data-source="SPACE MOO" data-date="20260518" href="https://www.spacemoo.jp/products/details/51805" target="_blank">
+  <div class="card-img"><img src="https://www.spacemoo.jp/upload/save_image/ek1874lp_2.jpg" alt="" onerror="this.parentNode.innerHTML='<div class=no-img>NO IMAGE</div>'"><div class="source-dot" style="background:#c084fc"></div></div>
+  <div class="card-body">
+    <span class="source-tag" style="color:#c084fc">SPACE MOO</span>
+    <p class="card-name">11.5ozデニム サルエルヌーベルパンツ 2026 (EK-1874LP)</p>
+    <div class="card-footer"><span class="card-price">¥26,180</span><span class="date-badge">2026.05.18</span></div>
+  </div>
+</a>
+<a class="card" data-source="SPACE MOO" data-date="20260423" href="https://www.spacemoo.jp/products/details/51756" target="_blank">
+  <div class="card-img"><img src="https://www.spacemoo.jp/upload/save_image/ek1399xb26_2.jpg" alt="" onerror="this.parentNode.innerHTML='<div class=no-img>NO IMAGE</div>'"><div class="source-dot" style="background:#c084fc"></div></div>
+  <div class="card-body">
+    <span class="source-tag" style="color:#c084fc">SPACE MOO</span>
+    <p class="card-name">6号帆布 スタンダードTOTE BAG 小 (EK-1399XB)</p>
+    <div class="card-footer"><span class="card-price">¥18,480</span><span class="date-badge">2026.04.23</span></div>
+  </div>
+</a>
+<a class="card" data-source="SPACE MOO" data-date="20260404" href="https://www.spacemoo.jp/products/details/51610" target="_blank">
+  <div class="card-img"><img src="https://www.spacemoo.jp/upload/save_image/ek1422sk_2.jpg" alt="" onerror="this.parentNode.innerHTML='<div class=no-img>NO IMAGE</div>'"><div class="source-dot" style="background:#c084fc"></div></div>
+  <div class="card-body">
+    <span class="source-tag" style="color:#c084fc">SPACE MOO</span>
+    <p class="card-name">13ozデニム ハイウエストマキシスカート (EK-1422SK)</p>
+    <div class="card-footer"><span class="card-price">¥15,180</span><span class="date-badge">2026.04.04</span></div>
+  </div>
+</a>
+<a class="card" data-source="SPACE MOO" data-date="20260404" href="https://www.spacemoo.jp/products/details/51611" target="_blank">
+  <div class="card-img"><img src="https://www.spacemoo.jp/upload/save_image/k2603xm507_2.jpg" alt="" onerror="this.parentNode.innerHTML='<div class=no-img>NO IMAGE</div>'"><div class="source-dot" style="background:#c084fc"></div></div>
+  <div class="card-body">
+    <span class="source-tag" style="color:#c084fc">SPACE MOO</span>
+    <p class="card-name">レーヨンフリンジストール KAYO HUESO デニムマップ</p>
+    <div class="card-footer"><span class="card-price">¥16,280</span><span class="date-badge">2026.04.04</span></div>
+  </div>
+</a>
+<a class="card" data-source="SPACE MOO" data-date="20260326" href="https://www.spacemoo.jp/products/details/51528" target="_blank">
+  <div class="card-img"><img src="https://www.spacemoo.jp/upload/save_image/k2603ba504_2.jpg" alt="" onerror="this.parentNode.innerHTML='<div class=no-img>NO IMAGE</div>'"><div class="source-dot" style="background:#c084fc"></div></div>
+  <div class="card-body">
+    <span class="source-tag" style="color:#c084fc">SPACE MOO</span>
+    <p class="card-name">fastcolor セルビッチバンダナ 田植え (K2603BA504)</p>
+    <div class="card-footer"><span class="card-price">-</span><span class="date-badge">2026.03.26</span></div>
+  </div>
+</a></div>
+<div class="notice">
+  ※ Blue Neon·Take Five: 이미지 타임스탬프(등록/수정일) | Kerouac: 날짜 미노출 → 26SS 신착 표기 | Space Moo: 입고일 기준<br>
+  ※ 캐피탈 공홈·SE7EN: robots 차단으로 수집 불가 | 카드 클릭 → 상품 페이지
+</div>
+<footer>KAPITAL TRACKER · GitHub Actions 매일 07:00 KST 자동 업데이트</footer>
+<script>
+const cs=Array.from(document.querySelectorAll('.card[data-source]'));
+cs.sort((a,b)=>parseInt(b.dataset.date)-parseInt(a.dataset.date));
+cs.forEach(c=>document.getElementById('grid').appendChild(c));
+function filt(src){
+  document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`.fb[data-source="${src}"]`).classList.add('active');
+  let n=0;
+  cs.forEach(c=>{const s=src==='ALL'||c.dataset.source===src;c.classList.toggle('hidden',!s);if(s)n++;});
+  document.getElementById('cnt').textContent=n;
+}
+</script>
+</body>
+</html>
