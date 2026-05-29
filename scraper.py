@@ -245,35 +245,34 @@ def scrape_se7en():
         time.sleep(3)
 
         html = driver.page_source
+        with open("/tmp/se7en_debug.html", "w", encoding="utf-8") as dbg:
+            dbg.write(html)
         driver.quit()
 
         # 상품 파싱
         # SE7EN 상품 URL 패턴: /products/detail/숫자
-        item_pat = re.compile(
-            r'href="(https://se7en\.jp/products/detail/(\d+))"[^>]*>.*?'
-            r'<img[^>]+src="(https://se7en\.jp/[^"]+(?:jpg|png|webp))"[^>]*>.*?'
-            r'<p[^>]*class="[^"]*name[^"]*"[^>]*>\s*([^<]{4,100})',
-            re.DOTALL
-        )
-        price_in_block = re.compile(r'([\d,]+)円')
-
         items = []
-        seen = set()
-        for m in item_pat.finditer(html):
-            link = m.group(1)
-            pid  = m.group(2)
-            img  = m.group(3)
-            name = unescape(m.group(4)).strip()
+        seen  = set()
+
+        # 패턴1: 상품 상세 링크 기반
+        links = re.findall(r'href="(https://se7en\.jp/products/detail/(\d+))"', html)
+        for link, pid in links:
             if pid in seen: continue
             seen.add(pid)
-
-            # 날짜: SE7EN은 날짜 노출 없으므로 오늘 날짜
-            dr = datetime.now(KST).strftime("%Y%m%d")
+            # 해당 블록에서 이미지+이름 찾기
+            idx = html.find(f'detail/{pid}')
+            seg = html[max(0,idx-200): idx+800]
+            mi = re.search(r'src="(https://se7en\.jp/html/upload/save_image/[^"]+)"|' +
+                           r'src="(https://se7en\.jp/[^"]+\.(?:jpg|png|webp))"', seg)
+            mn = re.search(r'<p[^>]*>\s*([^<]{4,80})\s*</p>', seg)
+            img  = (mi.group(1) or mi.group(2)) if mi else ""
+            name = unescape(mn.group(1)).strip() if mn else f"상품 {pid}"
             items.append({
                 "source":"SE7EN","color":"#fb923c",
                 "name": name, "price": "-",
                 "img": img, "link": link,
-                "date": dr, "date_label": "신착"
+                "date": datetime.now(KST).strftime("%Y%m%d"),
+                "date_label": "신착"
             })
 
         print(f"  → {len(items)} items")
@@ -307,18 +306,21 @@ def scrape_kapital_home():
         # 신착순 URL
         url = "https://www.kapital-webshop.jp/item_list.html?sort=3&dispno=40"
         driver.get(url)
-        time.sleep(3)
+        time.sleep(4)
 
         # 상품 목록 대기
         try:
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, ".item_list_each, .itemlist, li.item"))
+            WebDriverWait(driver, 12).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "li"))
             )
         except:
             pass
-        time.sleep(2)
+        time.sleep(3)
 
         html = driver.page_source
+        # 디버그용 저장
+        with open("/tmp/kapital_debug.html", "w", encoding="utf-8") as dbg:
+            dbg.write(html)
         driver.quit()
 
         # 상품 파싱 - 캐피탈 공홈 구조:
@@ -328,6 +330,15 @@ def scrape_kapital_home():
         # <p class="...price...">가격円</p>
         price_pat = re.compile(r'([\d,]+)円')
         block_pat = re.compile(r'<li[^>]*class="[^"]*item[^"]*"[^>]*>(.*?)</li>', re.DOTALL)
+
+        # 실제 HTML 구조 확인용 출력 (첫 2000자)
+        print(f"  [debug] html length: {len(html)}")
+        # li 태그 샘플
+        li_sample = re.findall(r'<li[^>]*class="[^"]*item[^"]*"[^>]*>', html)[:3]
+        print(f"  [debug] li.item samples: {li_sample}")
+        # 링크 샘플
+        link_sample = re.findall(r'href="(https://www\.kapital-webshop\.jp/item/[^"]+)"', html)[:3]
+        print(f"  [debug] item links: {link_sample}")
 
         items = []
         seen  = set()
