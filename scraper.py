@@ -274,43 +274,57 @@ def scrape_stc():
 
 def scrape_chromehearts():
     print("[Chrome Hearts] scraping...")
-    categories = [
-        "scarf",
+    # 스카프 카테고리별 개별 상품 페이지 목록
+    scarf_urls = [
+        "https://www.chromehearts.com/scarf/cemetery-cross-silk-scarf/196366O44XXX060.html",
+        "https://www.chromehearts.com/scarf/fu-scarf/075372A8SXXX008.html",
     ]
-    meta_pat = re.compile(
-        r'data-pid="([^"]+)"\s+data-name="([^"]+)"\s*\n\s*data-price="([\d.]+)"'
-    )
+    # 추가 카테고리 탐색 (scarf 목록 페이지)
+    raw = fetch_raw("https://www.chromehearts.com/scarf")
+    if raw:
+        html = raw.decode("utf-8", errors="replace")
+        found_links = re.findall(
+            r'href="(https://www\.chromehearts\.com/scarf/[^"?]+\.html)"', html
+        )
+        for l in found_links:
+            if l not in scarf_urls:
+                scarf_urls.append(l)
+
     items = []
     seen  = set()
     today = datetime.now(KST).strftime("%Y%m%d")
 
-    for cat in categories:
-        raw = fetch_raw(f"https://www.chromehearts.com/{cat}")
+    for url in scarf_urls:
+        if url in seen: continue
+        seen.add(url)
+        raw = fetch_raw(url)
         if not raw: continue
         html = raw.decode("utf-8", errors="replace")
-        for m in meta_pat.finditer(html):
-            pid   = m.group(1)
-            name  = m.group(2)
-            price_num = int(float(m.group(3)))
-            if pid in seen: continue
-            seen.add(pid)
-            idx = m.start()
-            seg = html[idx: idx+1500]
-            mi = re.search(r'src="(https://www\.chromehearts\.com/dw/image/[^"]+)"|' +
-                           r'src="(https://[^"]+\.(?:jpg|png))"', seg)
-            ml = re.search(r'href="(https://www\.chromehearts\.com/[^"?]+\.html)"', seg)
-            items.append({
-                "source":"CHROME HEARTS","color":"#e2c97e",
-                "name": name,
-                "price": f"${price_num:,}",
-                "img": (mi.group(1) or mi.group(2)) if mi else "",
-                "link": ml.group(1) if ml else f"https://www.chromehearts.com/{cat}",
-                "date": today,
-                "date_label": "신착"
-            })
+
+        name_m  = re.search(r'data-name="([^"]+)"', html)
+        price_m = re.search(r'data-price="([\d.]+)"', html)
+        pid_m   = re.search(r'data-pid="([^"]+)"', html)
+        img_m   = re.search(r'srcset="(https://www\.chromehearts\.com/dw/image/[^"]+)"', html)
+        sold    = bool(re.search(r'class="[^"]*sold-out[^"]*"', html))
+
+        if not name_m: continue
+        pid = pid_m.group(1) if pid_m else url.split("/")[-1]
+        if pid in seen: continue
+        seen.add(pid)
+
+        items.append({
+            "source": "CHROME HEARTS", "color": "#e2c97e",
+            "name":  name_m.group(1),
+            "price": f"${int(float(price_m.group(1))):,}" if price_m else "-",
+            "img":   img_m.group(1).split("?")[0] + "?sw=400&sh=500" if img_m else "",
+            "link":  url,
+            "date":  today,
+            "date_label": "신착",
+            "sold_out": sold,
+        })
+
     print(f"  → {len(items)} items")
     return items
-
 
 def scrape_se7en():
     print("[SE7EN] scraping with selenium...")
@@ -543,13 +557,15 @@ button:hover,button.active{border-color:#f0ede8;color:#f0ede8}
 .cbar{padding:5px 16px;font-size:10px;color:#555;border-bottom:1px solid #2a2a2a}
 .cbar span{color:#f0ede8}
 .grid-wrap{overflow-x:auto;width:100%}
-.site-grid{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);border-left:1px solid #2a2a2a;min-width:0}
+.site-grid{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);border-left:1px solid #2a2a2a;min-width:0;align-items:start}
 .site-col{border-right:1px solid #2a2a2a;min-width:0}
 .site-header{padding:0 3px;text-align:center;font-size:8.5px;font-weight:500;letter-spacing:.5px;border-bottom:1px solid #2a2a2a;background:#111;position:sticky;top:0;z-index:5;line-height:1.3;height:44px;min-height:44px;max-height:44px;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .cards-wrap{padding:2px}
 .card{display:block;text-decoration:none;color:inherit;background:#111;border-radius:2px;overflow:hidden;width:100%;margin-bottom:2px;position:relative}
 .card:hover{background:#1a1a1a}
 .card.hidden{display:none!important}
+.sold{opacity:.5;position:relative}
+.sold-badge{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.7);color:#ff4444;font-size:8px;font-weight:700;padding:2px 6px;border-radius:2px;letter-spacing:1px;white-space:nowrap;z-index:3}
 .ci{width:100%;aspect-ratio:1/1;overflow:hidden;background:#1a1a1a;position:relative}
 .ci img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
 .card:hover .ci img{transform:scale(1.05)}
@@ -566,45 +582,24 @@ footer{padding:10px 16px;border-top:1px solid #2a2a2a;font-size:10px;color:#555;
 </style>"""
 
 JS = """<script>
-var curDays=1;
-
-function getCutoff(days){
-  var d=new Date();
-  d.setDate(d.getDate()-days);
-  return parseInt(d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'));
-}
-
-function applyFilter(){
-  var cutoff=getCutoff(curDays);
-  var total=0;
-  document.querySelectorAll('.card[data-date]').forEach(function(c){
-    var show=parseInt(c.dataset.date)>=cutoff;
-    c.classList.toggle('hidden',!show);
-    if(show)total++;
-  });
-  document.getElementById('cnt').textContent=total;
-}
-
-function filtDays(days){
-  curDays=days;
-  document.querySelectorAll('.dbtn').forEach(function(b){b.classList.remove('active')});
-  document.querySelector('.dbtn[data-days="'+days+'"]').classList.add('active');
-  applyFilter();
-}
-
-filtDays(1);
+var total=document.querySelectorAll('.card[data-date]').length;
+document.getElementById('cnt').textContent=total;
 </script>"""
 
 
 def card_html(item):
     oe = "this.style.display='none'"
     color = SITE_COLORS.get(item["source"], "#888")
-    is_new = item.get("is_new", False)
-    nb = '<span class="nb">NEW</span>' if is_new else ''
+    is_new  = item.get("is_new", False)
+    is_sold = item.get("sold_out", False)
+    nb   = '<span class="nb">NEW</span>' if is_new else ''
+    sold = '<span class="sold-badge">SOLD OUT</span>' if is_sold else ''
+    sold_cls = ' sold' if is_sold else ''
     return (
-        f'<a class="card" data-date="{item["date"]}" href="{item["link"]}" target="_blank">'
+        f'<a class="card{sold_cls}" data-date="{item["date"]}" href="{item["link"]}" target="_blank">'
         f'<div class="ci"><img src="{item["img"]}" onerror="{oe}">'
-        f'{nb}<div class="sd" style="background:{color}"></div></div>'
+        f'{nb}{sold}'
+        f'<div class="sd" style="background:{color}"></div></div>'
         f'<div class="cb2"><p class="cn">{item["name"]}</p>'
         f'<div class="cf"><span class="cp">{item["price"]}</span>'
         f'<span class="db">{item["date_label"]}</span></div>'
@@ -651,15 +646,7 @@ def build_html(items):
   <div class="logo">KAPITAL <span>NEW ARRIVALS TRACKER</span></div>
   <div class="meta">업데이트: {NOW}<br>총 {len(items)}개</div>
 </header>
-<div class="filters">
-  <span class="fl">DAYS</span>
-  <button class="dbtn active" data-days="1" onclick="filtDays(1)">1일</button>
-  <button class="dbtn" data-days="3" onclick="filtDays(3)">3일</button>
-  <button class="dbtn" data-days="10" onclick="filtDays(10)">10일</button>
-  <button class="dbtn" data-days="30" onclick="filtDays(30)">30일</button>
-  <button class="dbtn" data-days="60" onclick="filtDays(60)">60일</button>
-</div>
-<div class="cbar">총 <span id="cnt">{len(items)}</span>개 표시 중</div>
+<div class="cbar">총 <span id="cnt">{len(items)}</span>개 표시 중 (최근 120일)</div>
 <div class="grid-wrap">
   <div class="site-grid" style="grid-template-columns:repeat({n},minmax(0,1fr))">
     {cols_html}
@@ -724,7 +711,7 @@ if __name__ == "__main__":
 
     # 60일 이내 필터 + 최신순 정렬
     today = datetime.now(KST)
-    cutoff = today - timedelta(days=60)
+    cutoff = today - timedelta(days=120)
     cutoff_int = int(cutoff.strftime("%Y%m%d"))
 
     items = [i for i in all_items if int(i["date"]) >= cutoff_int]
