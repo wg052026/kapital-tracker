@@ -110,39 +110,9 @@ def scrape_shop_pro_v2(source, color, img_prefix, base_url, cat_name=None):
             "sold_out": sold,
         })
     print(f"  → {len(items)} items (품절 {sum(1 for i in items if i['sold_out'])}개)")
-    # 품번 캐시 로드
-    import json as _jk, os as _osk
-    try:
-        with open("docs/kerouac_code_cache.json","r",encoding="utf-8") as _f:
-            code_cache = _jk.load(_f)
-    except:
-        code_cache = {}
-
-    # 품번 없는 상품 최대 5개 개별 페이지 fetch
-    missing = [i for i in items if i["link"].split("/item/")[1].split("?")[0] not in code_cache][:5]
-    for item in missing:
-        pid = item["link"].split("/item/")[1].split("?")[0]
-        raw2 = fetch_raw(item["link"])
-        if raw2:
-            page = raw2.decode("utf-8", errors="replace")
-            m = re.search(r'品番[\s：:]+([A-Z][A-Z0-9\-]+)', page)
-            if m: code_cache[pid] = m.group(1)
-            else: code_cache[pid] = ""
-        else:
-            code_cache[pid] = ""
-
-    # 캐시에서 품번 적용
-    for item in items:
-        pid = item["link"].split("/item/")[1].split("?")[0]
-        if pid in code_cache and code_cache[pid]:
-            item["item_code"] = code_cache[pid]
-
-    # 캐시 저장
-    _osk.makedirs("docs", exist_ok=True)
-    with open("docs/kerouac_code_cache.json","w",encoding="utf-8") as _f:
-        _jk.dump(code_cache, _f, ensure_ascii=False)
-
     return items
+
+
 
 
 def scrape_blueneon():
@@ -255,6 +225,37 @@ def scrape_kerouac():
         })
 
     print(f"  → {len(items)} items")
+    # 품번 캐시 로드
+    import json as _jk, os as _osk
+    try:
+        with open("docs/kerouac_code_cache.json","r",encoding="utf-8") as _f:
+            code_cache = _jk.load(_f)
+    except:
+        code_cache = {}
+
+    # 품번 없는 상품 최대 5개 개별 페이지 fetch
+    missing = [it for it in items if it["link"].split("/item/")[1].split("?")[0] not in code_cache][:5]
+    for it in missing:
+        pid = it["link"].split("/item/")[1].split("?")[0]
+        raw2 = fetch_raw(it["link"])
+        if raw2:
+            page = raw2.decode("utf-8", errors="replace")
+            m = re.search(r'品番[\s：:]+([A-Z][A-Z0-9\-]+)', page)
+            code_cache[pid] = m.group(1) if m else ""
+        else:
+            code_cache[pid] = ""
+
+    # 캐시에서 품번 적용
+    for it in items:
+        pid = it["link"].split("/item/")[1].split("?")[0]
+        if code_cache.get(pid):
+            it["item_code"] = code_cache[pid]
+
+    # 캐시 저장
+    _osk.makedirs("docs", exist_ok=True)
+    with open("docs/kerouac_code_cache.json","w",encoding="utf-8") as _f:
+        _jk.dump(code_cache, _f, ensure_ascii=False)
+
     return items
 
 
