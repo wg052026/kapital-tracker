@@ -845,6 +845,7 @@ if __name__ == "__main__":
         if i["source"] in KREAM_SOURCES
         and f"{i['source']}:{i['link'].rstrip('/').split('/')[-1].split('?')[-1]}" not in kream_cache
     ][:15]
+    kream_prices = scrape_kream_prices(new_items)
 
     kream_cache.update(kream_prices)
 
