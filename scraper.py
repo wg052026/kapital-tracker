@@ -486,7 +486,7 @@ button:hover,button.active{border-color:#f0ede8;color:#f0ede8}
 .grid-wrap{overflow-x:auto;width:100%}
 .site-grid{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);border-left:1px solid #2a2a2a;min-width:0}
 .site-col{border-right:1px solid #2a2a2a;min-width:0}
-.site-header{padding:5px 3px;text-align:center;font-size:8.5px;font-weight:500;letter-spacing:.5px;border-bottom:1px solid #2a2a2a;background:#111;position:sticky;top:0;z-index:5;line-height:1.4}
+.site-header{padding:0 3px;text-align:center;font-size:8.5px;font-weight:500;letter-spacing:.5px;border-bottom:1px solid #2a2a2a;background:#111;position:sticky;top:0;z-index:5;line-height:1.3;height:40px;min-height:40px;display:flex;align-items:center;justify-content:center}
 .cards-wrap{padding:2px}
 .card{display:block;text-decoration:none;color:inherit;background:#111;border-radius:2px;overflow:hidden;width:100%;margin-bottom:2px;position:relative}
 .card:hover{background:#1a1a1a}
