@@ -385,7 +385,7 @@ def scrape_kream_prices(new_items):
         driver = webdriver.Chrome(options=opts)
 
         for item in new_items:
-            key = f"{item['source']}:{item['link'].rstrip('/').split('/')[-1].split('?')[-1]}"
+            key = f"{item['source']}:{item['link'].rstrip('/').split('/')[-1].split('?')[-1].replace('.html','').replace('.htm','')}"
             price = get_kream_price(driver, item['name'], item_info=item)
             if price:
                 prices[key] = price
@@ -594,47 +594,49 @@ def scrape_kapital_home():
         # 실제 HTML 구조 확인용 출력 (첫 2000자)
         print(f"  [debug] html length: {len(html)}")
         blocks = list(block_pat.finditer(html))
+        blocks = list(block_pat.finditer(html))
         print(f"  [debug] item_list_box blocks: {len(blocks)}")
-        link_sample = re.findall(r'href="(https://www\.kapital-webshop\.jp/item/[^"]+)"', html)[:3]
-        print(f"  [debug] item links sample: {link_sample}")
 
         items = []
         seen  = set()
-        for block in block_pat.finditer(html):
-            b  = block.group(1)
-            ml = re.search(r'href="(https://www\.kapital-webshop\.jp/item/([^"]+)\.html)"', b)
-            mi = re.search(r'data-original="(/client_info/KAPITAL/itemimage/[^"]+\.jpg)"', b)
-            if not mi: mi = re.search(r'src="(/client_info/KAPITAL/[^"]+\.jpg)"', b)
-            mn = re.search(r'alt="([^"]{4,80})"', b)
-            if not mn: mn = re.search(r'class="[^"]*name[^"]*"[^>]*>\s*([^<]{4,80})', b)
-            if not mn: mn = re.search(r'<p[^>]*>\s*([^<]{10,80})\s*</p>', b)
-            # 가격: 블록 안 + 블록 뒤 200자에서도 검색
-            mp = price_pat.search(b)
-            if not mp:
-                block_end = block.end()
-                after = html[block_end: block_end+600]
-                mp = price_pat.search(after)
-            if not ml: continue
-            item_code = ml.group(2)
+        for block in blocks:
+            b = block.group(1)
+            # 이미지에서 품번 추출: /client_info/KAPITAL/itemimage/품번/
+            mi_code = re.search(r'/client_info/KAPITAL/itemimage/([A-Z][A-Z0-9]+)/', b)
+            if not mi_code: continue
+            item_code = mi_code.group(1)
             if item_code in seen: continue
             seen.add(item_code)
-            name  = unescape(mn.group(1)).strip() if mn else item_code
+            link = f"https://www.kapital-webshop.jp/item/{item_code}.html"
+            # 이미지 URL
+            mi = re.search(r'data-original="(/client_info/KAPITAL/itemimage/[^"]+\.jpg)"', b)
+            if not mi: mi = re.search(r'src="(/client_info/KAPITAL/[^"]+\.jpg)"', b)
             img_raw = mi.group(1) if mi else ""
             img = f"https://www.kapital-webshop.jp{img_raw}" if img_raw else ""
+            # 상품명 - alt 태그에서
+            mn = re.search(r'alt="([^"]{4,80})"', b)
+            name = unescape(mn.group(1)).strip() if mn else item_code
+            # 가격
+            mp = price_pat.search(b)
+            if not mp:
+                after = html[block.end(): block.end()+300]
+                mp = price_pat.search(after)
             price = f"¥{mp.group(1)}" if mp else "-"
+            # 품절
+            sold = bool(re.search(r'SOLD\s*OUT|売り切れ|完売', b, re.IGNORECASE))
             items.append({
                 "source":"KAPITAL 공홈","color":"#ff6b6b",
                 "name": name, "price": price,
-                "img": img, "link": ml.group(1),
+                "img": img, "link": link,
                 "date": datetime.now(KST).strftime("%Y%m%d"),
                 "date_label": "신착",
-                "sold_out": False,
+                "sold_out": sold,
             })
-            if len(items) >= 30:
-                break
+            if len(items) >= 30: break
 
         print(f"  → {len(items)} items")
         return items
+
 
     except Exception as e:
         print(f"  [WARN] Selenium 실패: {e}")
@@ -812,7 +814,7 @@ if __name__ == "__main__":
     # 모든 상품에 대해 캐시 기반 날짜 고정
     # (한번 기록된 날짜는 절대 바뀌지 않음)
     for item in all_items:
-        item_id = item["link"].rstrip("/").split("/")[-1].split("?")[-1]
+        item_id = item["link"].rstrip("/").split("/")[-1].split("?")[-1].replace(".html","").replace(".htm","")
         key = f"{item['source']}:{item_id}"
         if key not in cache:
             # 신규 상품: 현재 item의 date를 최초 날짜로 기록
@@ -839,7 +841,7 @@ if __name__ == "__main__":
             kream_cache = _json.load(_f)
     except:
         kream_cache = {}
-    KREAM_SOURCES = {"KAPITAL 공홈", "S.T.C", "KEROUAC", "SPACE MOO"}
+    KREAM_SOURCES = {"KAPITAL 공홈", "S.T.C", "SPACE MOO"}
     new_items = [
         i for i in all_items
         if i["source"] in KREAM_SOURCES
@@ -854,7 +856,7 @@ if __name__ == "__main__":
             _json.dump(kream_cache, _fw, ensure_ascii=False, indent=2)
     # 전체 상품에 크림 가격 적용
     for item in all_items:
-        item_id = item["link"].rstrip("/").split("/")[-1].split("?")[-1]
+        item_id = item["link"].rstrip("/").split("/")[-1].split("?")[-1].replace(".html","").replace(".htm","")
         key = f"{item['source']}:{item_id}"
         if key in kream_cache:
             item["kream_price"] = kream_cache[key]
@@ -862,7 +864,7 @@ if __name__ == "__main__":
     # 상품 키 생성 및 NEW 마킹
     current_keys = set()
     for item in all_items:
-        item_id = item["link"].rstrip("/").split("/")[-1].split("?")[-1]
+        item_id = item["link"].rstrip("/").split("/")[-1].split("?")[-1].replace(".html","").replace(".htm","")
         key = f"{item['source']}:{item_id}"
         current_keys.add(key)
         # 이전에 없던 상품이면 NEW 마킹
