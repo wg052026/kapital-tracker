@@ -56,7 +56,7 @@ def get_item_date(cache, source, item_id, today):
     return cache[key]
 
 
-def extract_item_code(source, link, name=""):
+def extract_item_code(source, link, name="", item=None):
     """사이트별 품번 추출"""
     import re as _re
     if source == "KAPITAL 공홈":
@@ -69,9 +69,8 @@ def extract_item_code(source, link, name=""):
         m = _re.search(r'\(([A-Z]{2}-\d{4}[A-Z]{0,3})\)', name)
         return m.group(1) if m else None
     elif source == "KEROUAC":
-        # 상품명에서 품번 추출 시도 (없으면 None)
-        m = _re.search(r'([A-Z]{2,4}\d{4}[A-Z]{0,4})', name)
-        return m.group(1) if m else None
+        # item_code 필드에 미리 저장된 품번 사용
+        return item.get("item_code") if hasattr(item, "get") else None
     return None
 
 
@@ -111,6 +110,38 @@ def scrape_shop_pro_v2(source, color, img_prefix, base_url, cat_name=None):
             "sold_out": sold,
         })
     print(f"  → {len(items)} items (품절 {sum(1 for i in items if i['sold_out'])}개)")
+    # 품번 캐시 로드
+    import json as _jk, os as _osk
+    try:
+        with open("docs/kerouac_code_cache.json","r",encoding="utf-8") as _f:
+            code_cache = _jk.load(_f)
+    except:
+        code_cache = {}
+
+    # 품번 없는 상품 최대 5개 개별 페이지 fetch
+    missing = [i for i in items if i["link"].split("/item/")[1].split("?")[0] not in code_cache][:5]
+    for item in missing:
+        pid = item["link"].split("/item/")[1].split("?")[0]
+        raw2 = fetch_raw(item["link"])
+        if raw2:
+            page = raw2.decode("utf-8", errors="replace")
+            m = re.search(r'品番[\s：:]+([A-Z][A-Z0-9\-]+)', page)
+            if m: code_cache[pid] = m.group(1)
+            else: code_cache[pid] = ""
+        else:
+            code_cache[pid] = ""
+
+    # 캐시에서 품번 적용
+    for item in items:
+        pid = item["link"].split("/item/")[1].split("?")[0]
+        if pid in code_cache and code_cache[pid]:
+            item["item_code"] = code_cache[pid]
+
+    # 캐시 저장
+    _osk.makedirs("docs", exist_ok=True)
+    with open("docs/kerouac_code_cache.json","w",encoding="utf-8") as _f:
+        _jk.dump(code_cache, _f, ensure_ascii=False)
+
     return items
 
 
@@ -574,7 +605,7 @@ def card_html(item):
     sold = '<span class="sold-badge">SOLD OUT</span>' if is_sold else ''
     sold_cls = ' sold' if is_sold else ''
     # 품번 추출 + 크림 버튼
-    code = extract_item_code(item["source"], item["link"], item["name"])
+    code = extract_item_code(item["source"], item["link"], item["name"], item=item)
     if code:
         kream_url = f"https://kream.co.kr/search?tab=products&keyword={_up.quote(code)}"
         kream_btn = f'<a class="kb" href="{kream_url}" target="_blank" onclick="event.stopPropagation()">{code}</a>'
