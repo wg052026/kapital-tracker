@@ -220,7 +220,6 @@ def scrape_aindahing():
 
 def scrape_stc():
     print("[S.T.C] scraping...")
-    # 타임아웃 대응: 2회 시도
     raw = fetch_raw("https://www.net-stc.com/category/14/")
     if not raw:
         print("  재시도...")
@@ -230,29 +229,26 @@ def scrape_stc():
 
     block_pat = re.compile(
         r'src="(https://www\.net-stc\.com/images/material/(?![\d/])[^"]+\.jpg)"'
-        r'.*?href="(https://www\.net-stc\.com/item/([^/]+)/)"[^>]*>\s*([^<]{4,100})',
+        r'.*?href="(https://www\.net-stc\.com/item/([^/]+)/)"[^>]*>\s*([^<]{4,100})'
+        r'.*?販売価格:([\d,]+)円',
         re.DOTALL
     )
-    price_pat = re.compile(r'([\d,]+)円')
 
     items, seen = [], set()
     for m in block_pat.finditer(html):
-        img  = m.group(1)
-        link = m.group(2)
         code = m.group(3)
-        name = unescape(m.group(4)).strip()
         if code in seen: continue
         seen.add(code)
-        seg = html[m.start(): m.start()+400]
-        mp  = price_pat.search(seg)
+        name = unescape(m.group(4)).strip()
         name = re.sub(r'^KAPITAL\s*\(キャピタル\)\s*', '', name).strip()
         items.append({
             "source":"S.T.C","color":"#34d399",
             "name": name,
-            "price": f"¥{mp.group(1)}" if mp else "-",
-            "img": img, "link": link,
+            "price": f"¥{m.group(5)}",
+            "img": m.group(1),
+            "link": m.group(2),
             "date": datetime.now(KST).strftime("%Y%m%d"),
-            "date_label": f"{datetime.now(KST).strftime('%y.%m.%d')} 신착"
+            "date_label": "신착"
         })
     items = items[:10]
     print(f"  → {len(items)} items")
@@ -318,12 +314,13 @@ def scrape_se7en():
             if not mn: mn = re.search(r'<p[^>]*>\s*([^<]{4,80})\s*</p>', seg)
             img_raw = mi.group(1) if mi else ""
             img = f"https://se7en.jp{img_raw}" if img_raw.startswith("/") else img_raw
-            mp = re.search(r'([\d,]+)円', seg)
+            mp = re.search(r'(?:ec-price|price)[^>]*>\D*(\d[\d,]+)\D*<|([\d,]+)円', seg)
+            price = f"¥{(mp.group(1) or mp.group(2))}" if mp and (mp.group(1) or mp.group(2)) else "-"
             name = unescape(mn.group(1)).strip() if mn else f"상품 {pid}"
             items.append({
                 "source":"SE7EN","color":"#fb923c",
                 "name": name,
-                "price": f"¥{mp.group(1)}" if mp else "-",
+                "price": price,
                 "img": img, "link": link,
                 "date": datetime.now(KST).strftime("%Y%m%d"),
                 "date_label": "신착"
@@ -384,7 +381,7 @@ def scrape_kapital_home():
         # <a href="/item/코드.html"><img src="...코드_M.jpg"></a>
         # <p class="...name...">상품명</p>
         # <p class="...price...">가격円</p>
-        price_pat = re.compile(r'([\d,]+)円')
+        price_pat = re.compile(r'(\d[\d,]+)円')
         block_pat = re.compile(r'<li[^>]*class="item_list_box"[^>]*>(.*?)</li>', re.DOTALL)
 
         # 실제 HTML 구조 확인용 출력 (첫 2000자)
@@ -414,7 +411,7 @@ def scrape_kapital_home():
             mp = price_pat.search(b)
             if not mp:
                 block_end = block.end()
-                after = html[block_end: block_end+300]
+                after = html[block_end: block_end+600]
                 mp = price_pat.search(after)
             if not ml: continue
             item_code = ml.group(2)
