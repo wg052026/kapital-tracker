@@ -14,6 +14,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -25,15 +27,18 @@ jobs:
           sudo apt-get install -y -q google-chrome-stable
           pip install selenium webdriver-manager
 
+      - name: 최신 상태로 동기화
+        run: |
+          git config user.name "kapital-bot"
+          git config user.email "bot@kapital-tracker"
+          git pull --rebase origin main
+
       - name: 크롤링 실행
         run: python scraper.py
 
       - name: 결과 커밋 & 푸시
         run: |
-          git config user.name "kapital-bot"
-          git config user.email "bot@kapital-tracker"
           git add docs/index.html docs/date_cache.json docs/prev_items.json
           git diff --cached --quiet && echo "변경 없음" && exit 0
           git commit -m "auto update $(date '+%Y-%m-%d %H:%M KST' -d '+9 hours')"
-          git pull --rebase origin main
-          git push
+          git push origin main
