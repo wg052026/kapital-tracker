@@ -56,6 +56,25 @@ def get_item_date(cache, source, item_id, today):
     return cache[key]
 
 
+def extract_item_code(source, link, name=""):
+    """사이트별 품번 추출"""
+    import re as _re
+    if source == "KAPITAL 공홈":
+        m = _re.search(r'/item/([A-Z][A-Z0-9\-]+)\.html', link)
+        return m.group(1) if m else None
+    elif source == "S.T.C":
+        m = _re.search(r'/item/([A-Z][A-Z0-9\-]+)/', link)
+        return m.group(1) if m else None
+    elif source == "SPACE MOO":
+        m = _re.search(r'\(([A-Z]{2}-\d{4}[A-Z]{0,3})\)', name)
+        return m.group(1) if m else None
+    elif source == "KEROUAC":
+        # 상품명에서 품번 추출 시도 (없으면 None)
+        m = _re.search(r'([A-Z]{2,4}\d{4}[A-Z]{0,4})', name)
+        return m.group(1) if m else None
+    return None
+
+
 def scrape_shop_pro_v2(source, color, img_prefix, base_url, cat_name=None):
     """shop-pro.jp 공통 스크래퍼 v2 - 원본 HTML 기준"""
     print(f"[{source}] scraping...")
@@ -546,6 +565,8 @@ button:hover,button.active{border-color:#f0ede8;color:#f0ede8}
 .cf{display:flex;justify-content:space-between;align-items:center;flex-shrink:0;padding-top:2px}
 .cp{font-size:8.5px;font-weight:500;color:#f0ede8}
 .db{font-size:7.5px;color:#555}
+.kb{display:block;font-size:8px;color:#e2c97e;padding:2px 4px;border-top:1px solid #222;text-decoration:none;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kb:hover{background:#1a1a1a;color:#f5d87a}
 .empty{font-size:9px;color:#333;text-align:center;padding:10px 2px}
 .notice{padding:12px 16px;font-size:10px;color:#555;line-height:1.8;border-top:1px solid #2a2a2a}
 footer{padding:10px 16px;border-top:1px solid #2a2a2a;font-size:10px;color:#555;text-align:center;letter-spacing:1px}
@@ -558,6 +579,7 @@ document.getElementById('cnt').textContent=total;
 
 
 def card_html(item):
+    import urllib.parse as _up
     oe = "this.style.display='none'"
     color = SITE_COLORS.get(item["source"], "#888")
     is_new  = item.get("is_new", False)
@@ -565,6 +587,13 @@ def card_html(item):
     nb   = '<span class="nb">NEW</span>' if is_new else ''
     sold = '<span class="sold-badge">SOLD OUT</span>' if is_sold else ''
     sold_cls = ' sold' if is_sold else ''
+    # 품번 추출 + 크림 버튼
+    code = extract_item_code(item["source"], item["link"], item["name"])
+    if code:
+        kream_url = f"https://kream.co.kr/search?tab=products&keyword={_up.quote('KAPITAL ' + code)}"
+        kream_btn = f'<a class="kb" href="{kream_url}" target="_blank" onclick="event.stopPropagation()">{code}</a>'
+    else:
+        kream_btn = ''
     return (
         f'<a class="card{sold_cls}" data-date="{item["date"]}" href="{item["link"]}" target="_blank">'
         f'<div class="ci"><img src="{item["img"]}" onerror="{oe}">'
@@ -573,6 +602,7 @@ def card_html(item):
         f'<div class="cb2"><p class="cn">{item["name"]}</p>'
         f'<div class="cf"><span class="cp">{item["price"]}</span>'
         f'<span class="db">{item["date_label"]}</span></div>'
+        + kream_btn
         + f'</div></a>'
     )
 
