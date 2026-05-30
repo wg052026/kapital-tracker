@@ -336,98 +336,18 @@ def scrape_chromehearts():
     print(f"  → {len(items)} items")
     return items
 
-def scrape_se7en():
-    print("[SE7EN] scraping with selenium...")
+
+def scrape_selenium_sites():
+    """SE7EN + KAPITAL 공홈을 하나의 Selenium 드라이버로 처리"""
+    import time
+    results = {"SE7EN": [], "KAPITAL 공홈": []}
+
     try:
         from selenium import webdriver
         from selenium.webdriver.chrome.options import Options
         from selenium.webdriver.support.ui import WebDriverWait
         from selenium.webdriver.support import expected_conditions as EC
         from selenium.webdriver.common.by import By
-        import time
-
-        opts = Options()
-        opts.add_argument("--headless")
-        opts.add_argument("--no-sandbox")
-        opts.add_argument("--disable-dev-shm-usage")
-        opts.add_argument("--disable-gpu")
-        opts.add_argument("--window-size=1280,800")
-        opts.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36")
-
-        driver = webdriver.Chrome(options=opts)
-        driver.get("https://se7en.jp/products/list?category_id=32&orderby=3&pageno=1&disp_number=20")
-
-        try:
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, ".item_list, .product_list, .item-list, div[class*='item']"))
-            )
-        except:
-            pass
-        time.sleep(3)
-
-        html = driver.page_source
-        with open("/tmp/se7en_debug.html", "w", encoding="utf-8") as dbg:
-            dbg.write(html)
-        driver.quit()
-
-        # 상품 파싱
-        # SE7EN 상품 URL 패턴: /products/detail/숫자
-        items = []
-        seen  = set()
-
-        # 패턴1: 상품 상세 링크 기반
-        links = re.findall(r'href="(https://se7en\.jp/products/detail/(\d+))"', html)
-        # 디버그: 첫번째 상품 HTML 확인
-        if links:
-            pid0 = links[0][1]
-            idx0 = html.find(f'detail/{pid0}')
-            seg0 = html[max(0,idx0-300): idx0+1000]
-            print(f"  [SE7EN debug] first item seg: {repr(seg0[:600])}")
-        for link, pid in links:
-            if pid in seen: continue
-            seen.add(pid)
-            # 해당 블록에서 이미지+이름 찾기
-            idx = html.find(f'detail/{pid}')
-            seg = html[max(0,idx-200): idx+800]
-            mi = re.search(r'src="(/html/upload/save_image/[^"]+)"', seg)
-            if not mi: mi = re.search(r'src="(https://se7en\.jp/[^"]+\.(?:jpg|png|webp))"', seg)
-            mn = re.search(r'ec-shelfGrid__item-name[^>]*>\s*([^<]{2,80})', seg)
-            if not mn: mn = re.search(r'<p[^>]*>\s*([^<]{4,80})\s*</p>', seg)
-            img_raw = mi.group(1) if mi else ""
-            img = f"https://se7en.jp{img_raw}" if img_raw.startswith("/") else img_raw
-            mp = re.search(r'(?:ec-price|price)[^>]*>\D*(\d[\d,]+)\D*<|([\d,]+)円', seg)
-            price = f"¥{(mp.group(1) or mp.group(2))}" if mp and (mp.group(1) or mp.group(2)) else "-"
-            name = unescape(mn.group(1)).strip() if mn else f"상품 {pid}"
-            items.append({
-                "source":"SE7EN","color":"#fb923c",
-                "name": name,
-                "price": price,
-                "img": img, "link": link,
-                "date": datetime.now(KST).strftime("%Y%m%d"),
-                "date_label": "신착",
-                "sold_out": bool(re.search(r'完売|Sold\s*[Oo]ut|sold-out', seg, re.IGNORECASE)),
-                "sold_out": bool(re.search(r'完売|Sold\s*[Oo]ut|sold-out', seg, re.IGNORECASE)),
-            })
-            if len(items) >= 30:
-                break
-
-        print(f"  → {len(items)} items")
-        return items
-
-    except Exception as e:
-        print(f"  [WARN] SE7EN Selenium 실패: {e}")
-        return []
-
-
-def scrape_kapital_home():
-    print("[Kapital Home] scraping with selenium...")
-    try:
-        from selenium import webdriver
-        from selenium.webdriver.chrome.options import Options
-        from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
-        import time
 
         opts = Options()
         opts.add_argument("--headless")
@@ -439,89 +359,124 @@ def scrape_kapital_home():
 
         driver = webdriver.Chrome(options=opts)
 
-        # 신착순 URL
-        url = "https://www.kapital-webshop.jp/item_list.html?sort=3&dispno=40"
-        driver.get(url)
-        time.sleep(4)
-
-        # 상품 목록 대기
+        # ── SE7EN ──────────────────────────────────
+        print("[SE7EN] scraping with selenium...")
         try:
-            WebDriverWait(driver, 12).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "li"))
-            )
-        except:
-            pass
-        time.sleep(3)
-        # 스크롤로 JS 렌더링 트리거
-        try:
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight/2);")
-            time.sleep(2)
-        except: pass
+            driver.get("https://se7en.jp/products/list?category_id=32&orderby=3&pageno=1&disp_number=20")
+            try:
+                WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, ".ec-shelfGrid__item"))
+                )
+            except: pass
+            time.sleep(3)
 
-        html = driver.page_source
-        # 디버그용 저장
-        with open("/tmp/kapital_debug.html", "w", encoding="utf-8") as dbg:
-            dbg.write(html)
+            html = driver.page_source
+            with open("/tmp/se7en_debug.html", "w", encoding="utf-8") as dbg:
+                dbg.write(html)
+
+            # SE7EN 파싱
+            items_se7 = []
+            seen_se7 = set()
+            links = re.findall(r'href="(https://se7en\.jp/products/detail/(\d+))"', html)
+            for link, pid in links:
+                if pid in seen_se7: continue
+                seen_se7.add(pid)
+                idx = html.find(f'detail/{pid}')
+                seg = html[max(0, idx-200): idx+800]
+                mi = re.search(r'src="(/html/upload/save_image/[^"]+)"', seg)
+                if not mi: mi = re.search(r'src="(https://se7en\.jp/[^"]+\.(?:jpg|png|webp))"', seg)
+                img_raw = (mi.group(1) if mi else "")
+                img = f"https://se7en.jp{img_raw}" if img_raw.startswith("/") else img_raw
+                mn = re.search(r'ec-shelfGrid__item-name[^>]*>\s*([^<]{2,80})', seg)
+                mp = re.search(r'([\d,]+)円', seg)
+                price = f"¥{mp.group(1)}" if mp else "-"
+                name = unescape(mn.group(1)).strip() if mn else f"상품 {pid}"
+                sold = bool(re.search(r'完売|Sold\s*[Oo]ut|sold-out', seg, re.IGNORECASE))
+                items_se7.append({
+                    "source":"SE7EN","color":"#fb923c",
+                    "name": name, "price": price,
+                    "img": img, "link": link,
+                    "date": datetime.now(KST).strftime("%Y%m%d"),
+                    "date_label": "신착",
+                    "sold_out": sold,
+                })
+                if len(items_se7) >= 30: break
+
+            results["SE7EN"] = items_se7
+            print(f"  → {len(items_se7)} items")
+
+        except Exception as e:
+            print(f"  [WARN] SE7EN 실패: {e}")
+
+        # ── KAPITAL 공홈 ───────────────────────────
+        print("[Kapital Home] scraping with selenium...")
+        try:
+            driver.get("https://www.kapital-webshop.jp/item_list.html?sort=3&dispno=40")
+            try:
+                WebDriverWait(driver, 12).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "li"))
+                )
+            except: pass
+            time.sleep(3)
+            try:
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight/2);")
+                time.sleep(2)
+            except: pass
+
+            html = driver.page_source
+            with open("/tmp/kapital_debug.html", "w", encoding="utf-8") as dbg:
+                dbg.write(html)
+
+            price_pat = re.compile(r'(\d[\d,]+)円')
+            block_pat = re.compile(r'<li[^>]*class="item_list_box"[^>]*>(.*?)</li>', re.DOTALL)
+            blocks = list(block_pat.finditer(html))
+            print(f"  [debug] html length: {len(html)}")
+            print(f"  [debug] item_list_box blocks: {len(blocks)}")
+
+            items_kap = []
+            seen_kap = set()
+            for block in blocks:
+                b = block.group(1)
+                mi_code = re.search(r'/client_info/KAPITAL/itemimage/([A-Z][A-Z0-9]+)/', b)
+                if not mi_code: continue
+                item_code = mi_code.group(1)
+                if item_code in seen_kap: continue
+                seen_kap.add(item_code)
+                link = f"https://www.kapital-webshop.jp/item/{item_code}.html"
+                mi = re.search(r'data-original="(/client_info/KAPITAL/itemimage/[^"]+\.jpg)"', b)
+                if not mi: mi = re.search(r'src="(/client_info/KAPITAL/[^"]+\.jpg)"', b)
+                img_raw = mi.group(1) if mi else ""
+                img = f"https://www.kapital-webshop.jp{img_raw}" if img_raw else ""
+                mn = re.search(r'alt="([^"]{4,80})"', b)
+                name = unescape(mn.group(1)).strip() if mn else item_code
+                mp = price_pat.search(b)
+                if not mp:
+                    after = html[block.end(): block.end()+300]
+                    mp = price_pat.search(after)
+                price = f"¥{mp.group(1)}" if mp else "-"
+                sold = bool(re.search(r'SOLD\s*OUT|売り切れ|完売|sold_out', b, re.IGNORECASE))
+                items_kap.append({
+                    "source":"KAPITAL 공홈","color":"#ff6b6b",
+                    "name": name, "price": price,
+                    "img": img, "link": link,
+                    "date": datetime.now(KST).strftime("%Y%m%d"),
+                    "date_label": "신착",
+                    "sold_out": sold,
+                })
+                if len(items_kap) >= 30: break
+
+            results["KAPITAL 공홈"] = items_kap
+            print(f"  → {len(items_kap)} items")
+
+        except Exception as e:
+            print(f"  [WARN] Kapital Home 실패: {e}")
+
         driver.quit()
 
-        # 상품 파싱 - 캐피탈 공홈 구조:
-        # <li class="...item..."> 블록 안에
-        # <a href="/item/코드.html"><img src="...코드_M.jpg"></a>
-        # <p class="...name...">상품명</p>
-        # <p class="...price...">가격円</p>
-        price_pat = re.compile(r'(\d[\d,]+)円')
-        block_pat = re.compile(r'<li[^>]*class="item_list_box"[^>]*>(.*?)</li>', re.DOTALL)
-
-        # 실제 HTML 구조 확인용 출력 (첫 2000자)
-        print(f"  [debug] html length: {len(html)}")
-        blocks = list(block_pat.finditer(html))
-        blocks = list(block_pat.finditer(html))
-        print(f"  [debug] item_list_box blocks: {len(blocks)}")
-
-        items = []
-        seen  = set()
-        for block in blocks:
-            b = block.group(1)
-            # 이미지에서 품번 추출: /client_info/KAPITAL/itemimage/품번/
-            mi_code = re.search(r'/client_info/KAPITAL/itemimage/([A-Z][A-Z0-9]+)/', b)
-            if not mi_code: continue
-            item_code = mi_code.group(1)
-            if item_code in seen: continue
-            seen.add(item_code)
-            link = f"https://www.kapital-webshop.jp/item/{item_code}.html"
-            # 이미지 URL
-            mi = re.search(r'data-original="(/client_info/KAPITAL/itemimage/[^"]+\.jpg)"', b)
-            if not mi: mi = re.search(r'src="(/client_info/KAPITAL/[^"]+\.jpg)"', b)
-            img_raw = mi.group(1) if mi else ""
-            img = f"https://www.kapital-webshop.jp{img_raw}" if img_raw else ""
-            # 상품명 - alt 태그에서
-            mn = re.search(r'alt="([^"]{4,80})"', b)
-            name = unescape(mn.group(1)).strip() if mn else item_code
-            # 가격
-            mp = price_pat.search(b)
-            if not mp:
-                after = html[block.end(): block.end()+300]
-                mp = price_pat.search(after)
-            price = f"¥{mp.group(1)}" if mp else "-"
-            # 품절
-            sold = bool(re.search(r'SOLD\s*OUT|売り切れ|完売', b, re.IGNORECASE))
-            items.append({
-                "source":"KAPITAL 공홈","color":"#ff6b6b",
-                "name": name, "price": price,
-                "img": img, "link": link,
-                "date": datetime.now(KST).strftime("%Y%m%d"),
-                "date_label": "신착",
-                "sold_out": sold,
-            })
-            if len(items) >= 30: break
-
-        print(f"  → {len(items)} items")
-        return items
-
-
     except Exception as e:
-        print(f"  [WARN] Selenium 실패: {e}")
-        return []
+        print(f"  [WARN] Selenium 초기화 실패: {e}")
+
+    return results["SE7EN"], results["KAPITAL 공홈"]
 
 
 def card_html(i):
@@ -685,10 +640,10 @@ if __name__ == "__main__":
     cache = load_date_cache()
     prev_items = load_prev_items()
 
+    se7en_items, kapital_items = scrape_selenium_sites()
     all_items = (scrape_blueneon() + scrape_takefive() + scrape_kerouac() + scrape_spacemoo() +
                  scrape_babooshka() + scrape_aindahing() + scrape_stc() +
-                 scrape_se7en() + scrape_kapital_home() + scrape_chromehearts())
-
+                 se7en_items + kapital_items + scrape_chromehearts())
     # 날짜 없는 사이트는 캐시에서 날짜 조회 (새 상품이면 오늘 날짜 기록)
     # 모든 상품에 대해 캐시 기반 날짜 고정
     # (한번 기록된 날짜는 절대 바뀌지 않음)
