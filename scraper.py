@@ -32,6 +32,22 @@ def save_date_cache(cache):
     with open("docs/date_cache.json", "w", encoding="utf-8") as f:
         json.dump(cache, f, ensure_ascii=False, indent=2)
 
+def load_prev_items():
+    """이전 실행의 상품 ID 목록 로드"""
+    try:
+        import json
+        with open("docs/prev_items.json", "r", encoding="utf-8") as f:
+            return set(json.load(f))
+    except:
+        return set()
+
+def save_prev_items(item_keys):
+    """현재 상품 ID 목록 저장"""
+    import json
+    os.makedirs("docs", exist_ok=True)
+    with open("docs/prev_items.json", "w", encoding="utf-8") as f:
+        json.dump(list(item_keys), f, ensure_ascii=False)
+
 def get_item_date(cache, source, item_id, today):
     """캐시에서 날짜 조회, 없으면 오늘 날짜로 신규 등록"""
     key = f"{source}:{item_id}"
@@ -80,20 +96,15 @@ def scrape_takefive():
     try: html = raw.decode("euc-jp")
     except: html = raw.decode("utf-8", errors="replace")
 
-    # 실제 HTML 구조:
-    # [![](img_url?cmsp_timestamp=YYYYMMDD...)](link_url)
-    # [[KAPITAL]상품명](link_url)
-    # 이미지 URL과 링크가 별도 줄에 있음
-
-    # 이미지 URL + timestamp
-    # 실제 HTML 구조 (원본 HTML):
-    # <img src="...product/PID_th.jpg?cmsp_timestamp=YYYYMMDD...">
-    # <a href="?pid=PID">[KAPITAL]상품명</a>
+    # 마크다운 변환 후 구조:
+    # [![](img?cmsp_timestamp=YYYYMMDD)](link)
+    # [[KAPITAL]상품명](link)
     img_pat  = re.compile(
         r'https://img09\.shop-pro\.jp/PA01043/640/product/(\d+)_th\.jpg'
         r'\?cmsp_timestamp=(\d{8})\d+'
     )
-    name_pat = re.compile(r'href="\?pid=\d+"[^>]*>(?:<img[^>]+>)*\[KAPITAL\]\s*([^<]+)</a>')
+    # [[KAPITAL]상품명](링크) 패턴
+    name_pat = re.compile(r'href="\?pid=\d+"[^>]*>\[KAPITAL\]([^<]+)</a>')
 
     items = []
     for mi in img_pat.finditer(html):
@@ -101,7 +112,10 @@ def scrape_takefive():
         date_raw = mi.group(2)
         seg = html[mi.start(): mi.start()+600]
         mn = name_pat.search(seg)
-        name = unescape(mn.group(1)).strip() if mn else f"상품 {pid}"
+        if mn:
+            name = unescape(mn.group(1)).strip()
+        else:
+            name = f"상품 {pid}"
         dr = date_raw
         items.append({
             "source":"TAKE FIVE","color":"#f5c842",
@@ -113,6 +127,7 @@ def scrape_takefive():
 
     print(f"  → {len(items)} items")
     return items
+
 
 def scrape_kerouac():
     static = [
@@ -303,10 +318,12 @@ def scrape_se7en():
             if not mn: mn = re.search(r'<p[^>]*>\s*([^<]{4,80})\s*</p>', seg)
             img_raw = mi.group(1) if mi else ""
             img = f"https://se7en.jp{img_raw}" if img_raw.startswith("/") else img_raw
+            mp = re.search(r'([\d,]+)円', seg)
             name = unescape(mn.group(1)).strip() if mn else f"상품 {pid}"
             items.append({
                 "source":"SE7EN","color":"#fb923c",
-                "name": name, "price": "-",
+                "name": name,
+                "price": f"¥{mp.group(1)}" if mp else "-",
                 "img": img, "link": link,
                 "date": datetime.now(KST).strftime("%Y%m%d"),
                 "date_label": "신착"
@@ -390,11 +407,15 @@ def scrape_kapital_home():
             ml = re.search(r'href="(https://www\.kapital-webshop\.jp/item/([^"]+)\.html)"', b)
             mi = re.search(r'data-original="(/client_info/KAPITAL/itemimage/[^"]+\.jpg)"', b)
             if not mi: mi = re.search(r'src="(/client_info/KAPITAL/[^"]+\.jpg)"', b)
-
             mn = re.search(r'alt="([^"]{4,80})"', b)
             if not mn: mn = re.search(r'class="[^"]*name[^"]*"[^>]*>\s*([^<]{4,80})', b)
             if not mn: mn = re.search(r'<p[^>]*>\s*([^<]{10,80})\s*</p>', b)
+            # 가격: 블록 안 + 블록 뒤 200자에서도 검색
             mp = price_pat.search(b)
+            if not mp:
+                block_end = block.end()
+                after = html[block_end: block_end+300]
+                mp = price_pat.search(after)
             if not ml: continue
             item_code = ml.group(2)
             if item_code in seen: continue
@@ -423,11 +444,16 @@ def scrape_kapital_home():
 
 def card_html(i):
     oe = "this.style.display='none'"
+    is_new = i.get("is_new", False)
+    new_attr = ' data-new="1"' if is_new else ''
+    new_badge = '<span class="nb">NEW</span>' if is_new else ''
     return (
-        f'<a class="card" data-source="{i["source"]}" data-date="{i["date"]}" '
+        f'<a class="card" data-source="{i["source"]}" data-date="{i["date"]}"{new_attr} '
         f'href="{i["link"]}" target="_blank">'
         f'<div class="ci"><img src="{i["img"]}" onerror="{oe}">'
-        f'<div class="sd" style="background:{i["color"]}"></div></div>'
+        f'<div class="sd" style="background:{i["color"]}"></div>'
+        f'{new_badge}'
+        f'</div>'
         f'<div class="cb2">'
         f'<span class="st" style="color:{i["color"]}">{i["source"]}</span>'
         f'<p class="cn">{i["name"]}</p>'
@@ -468,6 +494,7 @@ button:hover,button.active{border-color:#f0ede8;color:#f0ede8}
 .notice{padding:14px 24px;font-size:11px;color:#888;line-height:1.8;border-top:1px solid #2a2a2a}
 footer{padding:14px 24px;border-top:1px solid #2a2a2a;font-size:11px;color:#888;text-align:center;letter-spacing:1px}
 .hidden{display:none!important}
+.nb{position:absolute;top:8px;right:8px;background:#ff3b3b;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:2px;letter-spacing:1px;z-index:2}
 </style>"""
 
 JS = """<script>
@@ -509,13 +536,32 @@ function filt(src){
 
 function filtDays(days){
   curDays=days;
+  curMode='normal';
   document.querySelectorAll('.dbtn').forEach(function(b){b.classList.remove('active')});
   document.querySelector('.dbtn[data-days="'+days+'"]').classList.add('active');
+  document.querySelectorAll('button[data-new]').forEach(function(b){b.classList.remove('active')});
   applyFilter();
 }
 
-// 초기 3일 필터 적용
-filtDays(3);
+function filtNew(){
+  curMode='new';
+  document.querySelectorAll('button[data-source],button[data-new]').forEach(function(b){b.classList.remove('active')});
+  document.querySelector('button[data-new="new"]').classList.add('active');
+  var n=0;
+  cs.forEach(function(c){
+    var show=c.dataset.new==='1';
+    c.classList.toggle('hidden',!show);
+    if(show)n++;
+  });
+  document.getElementById('cnt').textContent=n;
+  if(n===0){
+    document.getElementById('cnt').textContent='0 (아직 변경 없음)';
+  }
+}
+
+var curMode='new';
+// 초기: 신규입고 표시
+filtNew();
 </script>"""
 
 def build_html(items):
@@ -545,8 +591,12 @@ def build_html(items):
   <div class="ld"><div class="dot" style="background:#ff6b6b"></div>KAPITAL 공홈</div>
 </div>
 <div class="filters">
+  <span class="fl">NEW</span>
+  <button class="active" data-new="new" onclick="filtNew()">🆕 신규입고</button>
+</div>
+<div class="filters">
   <span class="fl">SHOP</span>
-  <button class="active" data-source="ALL" onclick="filt('ALL')">ALL</button>
+  <button data-source="ALL" onclick="filt('ALL')">ALL</button>
   <button data-source="BLUE NEON" onclick="filt('BLUE NEON')">BLUE NEON</button>
   <button data-source="KEROUAC" onclick="filt('KEROUAC')">KEROUAC</button>
   <button data-source="TAKE FIVE" onclick="filt('TAKE FIVE')">TAKE FIVE</button>
@@ -559,7 +609,8 @@ def build_html(items):
 </div>
 <div class="filters">
   <span class="fl">DAYS</span>
-  <button class="dbtn active" data-days="3" onclick="filtDays(3)">3일</button>
+  <button class="dbtn active" data-days="1" onclick="filtDays(1)">1일</button>
+  <button class="dbtn" data-days="3" onclick="filtDays(3)">3일</button>
   <button class="dbtn" data-days="10" onclick="filtDays(10)">10일</button>
   <button class="dbtn" data-days="30" onclick="filtDays(30)">30일</button>
   <button class="dbtn" data-days="60" onclick="filtDays(60)">60일</button>
@@ -579,25 +630,48 @@ if __name__ == "__main__":
     os.makedirs("docs", exist_ok=True)
     today_str = datetime.now(KST).strftime("%Y%m%d")
 
-    # 날짜 캐시 로드
+    # 날짜 캐시 + 이전 상품 목록 로드
     cache = load_date_cache()
+    prev_items = load_prev_items()
 
     all_items = (scrape_blueneon() + scrape_takefive() + scrape_kerouac() + scrape_spacemoo() +
                  scrape_babooshka() + scrape_aindahing() + scrape_stc() +
                  scrape_se7en() + scrape_kapital_home())
 
     # 날짜 없는 사이트는 캐시에서 날짜 조회 (새 상품이면 오늘 날짜 기록)
-    no_date_sources = {"S.T.C", "SE7EN", "KAPITAL 공홈"}
+    # 모든 상품에 대해 캐시 기반 날짜 고정
+    # (한번 기록된 날짜는 절대 바뀌지 않음)
     for item in all_items:
-        if item["source"] in no_date_sources:
-            # 상품 ID: link URL의 마지막 부분
-            item_id = item["link"].rstrip("/").split("/")[-1].split("?")[-1]
-            cached_date = get_item_date(cache, item["source"], item_id, today_str)
-            item["date"] = cached_date
-            item["date_label"] = f"{cached_date[2:4]}.{cached_date[4:6]}.{cached_date[6:8]} 신착"
+        item_id = item["link"].rstrip("/").split("/")[-1].split("?")[-1]
+        key = f"{item['source']}:{item_id}"
+        if key not in cache:
+            # 신규 상품: 현재 item의 date를 최초 날짜로 기록
+            cache[key] = item["date"]
+        else:
+            # 기존 상품: 캐시의 날짜로 덮어쓰기 (날짜 불변 보장)
+            item["date"] = cache[key]
+
+        # date_label 통일
+        dr = item["date"]
+        if item["source"] in {"S.T.C", "SE7EN", "KAPITAL 공홈", "KEROUAC"}:
+            item["date_label"] = f"{dr[2:4]}.{dr[4:6]}.{dr[6:8]} 신착"
+        else:
+            item["date_label"] = f"{dr[:4]}.{dr[4:6]}.{dr[6:8]}"
 
     # 캐시 저장
     save_date_cache(cache)
+
+    # 상품 키 생성 및 NEW 마킹
+    current_keys = set()
+    for item in all_items:
+        item_id = item["link"].rstrip("/").split("/")[-1].split("?")[-1]
+        key = f"{item['source']}:{item_id}"
+        current_keys.add(key)
+        # 이전에 없던 상품이면 NEW 마킹
+        item["is_new"] = (key not in prev_items) and bool(prev_items)
+
+    # 현재 상품 목록 저장 (다음 실행 비교용)
+    save_prev_items(current_keys)
 
     # 60일 이내 필터 + 최신순 정렬
     today = datetime.now(KST)
