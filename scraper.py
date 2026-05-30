@@ -473,7 +473,7 @@ def scrape_selenium_sites():
                     after = html[block.end(): block.end()+300]
                     mp = price_pat.search(after)
                 price = f"¥{mp.group(1)}" if mp else "-"
-                sold = bool(re.search(r'SOLD\s*OUT|売り切れ|完売|sold_out', b, re.IGNORECASE))
+                sold = False  # 공홈은 품절 감지 불가
                 items_kap.append({
                     "source":"KAPITAL 공홈","color":"#ff6b6b",
                     "name": name, "price": price,
