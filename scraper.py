@@ -475,7 +475,7 @@ def scrape_se7en():
                 "date": datetime.now(KST).strftime("%Y%m%d"),
                 "date_label": "신착"
             })
-            if len(items) >= 10:
+            if len(items) >= 30:
                 break
 
         print(f"  → {len(items)} items")
@@ -536,18 +536,11 @@ def scrape_kapital_home():
 
         # 실제 HTML 구조 확인용 출력 (첫 2000자)
         print(f"  [debug] html length: {len(html)}")
-        # li 태그 샘플
-        li_sample = re.findall(r'<li[^>]*class="[^"]*item[^"]*"[^>]*>', html)[:3]
-        print(f"  [debug] li.item samples: {li_sample}")
-        # 첫 번째 블록 내용 출력
-        first_block = block_pat.search(html)
-        if first_block:
-            print(f"  [debug] first block (500chars): {repr(first_block.group(1)[:500])}")
-        # 링크 샘플
+        blocks = list(block_pat.finditer(html))
+        print(f"  [debug] item_list_box blocks: {len(blocks)}")
         link_sample = re.findall(r'href="(https://www\.kapital-webshop\.jp/item/[^"]+)"', html)[:3]
-        print(f"  [debug] item links: {link_sample}")
+        print(f"  [debug] item links sample: {link_sample}")
 
-        items = []
         seen  = set()
         for block in block_pat.finditer(html):
             b  = block.group(1)
@@ -578,7 +571,7 @@ def scrape_kapital_home():
                 "date": datetime.now(KST).strftime("%Y%m%d"),
                 "date_label": "신착"
             })
-            if len(items) >= 10:
+            if len(items) >= 30:
                 break
 
         print(f"  → {len(items)} items")
@@ -643,16 +636,17 @@ button:hover,button.active{border-color:#f0ede8;color:#f0ede8}
 .card{display:block;text-decoration:none;color:inherit;background:#111;border-radius:2px;overflow:hidden;width:100%;margin-bottom:2px;position:relative}
 .card:hover{background:#1a1a1a}
 .card.hidden{display:none!important}
-.sold{opacity:.5;position:relative}
+.sold{position:relative}
+.sold .ci{opacity:.45}
 .sold-badge{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.7);color:#ff4444;font-size:8px;font-weight:700;padding:2px 6px;border-radius:2px;letter-spacing:1px;white-space:nowrap;z-index:3}
 .ci{width:100%;aspect-ratio:1/1;overflow:hidden;background:#1a1a1a;position:relative}
 .ci img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
 .card:hover .ci img{transform:scale(1.05)}
 .nb{position:absolute;top:3px;right:3px;background:rgba(220,38,38,.85);color:#fff;font-size:7px;font-weight:700;padding:1px 4px;border-radius:1px;letter-spacing:.5px;z-index:2}
 .sd{position:absolute;top:4px;left:4px;width:5px;height:5px;border-radius:50%}
-.cb2{padding:3px 4px 4px}
-.cn{font-size:8.5px;line-height:1.4;color:#bbb;margin-bottom:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.cf{display:flex;justify-content:space-between;align-items:center}
+.cb2{padding:4px 5px 4px;height:72px;min-height:72px;max-height:72px;display:flex;flex-direction:column;overflow:hidden}
+.cn{font-size:8px;line-height:1.35;color:#bbb;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;flex:1;word-break:break-all;margin:0}
+.cf{display:flex;justify-content:space-between;align-items:center;flex-shrink:0;padding-top:2px}
 .cp{font-size:8.5px;font-weight:500;color:#f0ede8}
 .db{font-size:7.5px;color:#555}
 .kp{font-size:8px;color:#e2c97e;padding:2px 4px 3px;border-top:1px solid #222;letter-spacing:.3px}
