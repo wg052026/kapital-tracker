@@ -122,6 +122,13 @@ def scrape_blueneon():
 
 def scrape_takefive():
     print("[Take Five] scraping...")
+    # 가격 캐시 로드
+    import json as _j
+    try:
+        with open("docs/tf_price_cache.json","r",encoding="utf-8") as _f:
+            tf_price_cache = _j.load(_f)
+    except:
+        tf_price_cache = {}
     raw = fetch_raw("https://takefive.jp/?mode=grp&gid=1066766&sort=n")
     if not raw: return []
     try: html = raw.decode("euc-jp")
@@ -150,12 +157,31 @@ def scrape_takefive():
         dr = date_raw
         items.append({
             "source":"TAKE FIVE","color":"#f5c842",
-            "name": name, "price": "-",
+            "name": name, "price": tf_price_cache.get(pid, "-"),
             "img": f"https://img09.shop-pro.jp/PA01043/640/product/{pid}_th.jpg",
             "link": f"https://takefive.jp/?pid={pid}",
             "date": dr, "date_label": f"{dr[:4]}.{dr[4:6]}.{dr[6:8]}"
         })
 
+    # 가격 없는 상품 개별 fetch (최대 5개만, 나머지는 다음 실행에)
+    missing = [i for i in items if i["price"] == "-"][:5]
+    for item in missing:
+        pid = item["link"].split("pid=")[-1]
+        raw2 = fetch_raw(item["link"])
+        if raw2:
+            try: page = raw2.decode("euc-jp")
+            except: page = raw2.decode("utf-8", errors="replace")
+            mp = re.search(r'販売価格[^\d]*(\d[\d,]+)円', page)
+            if not mp: mp = re.search(r'(\d[\d,]+)円', page)
+            if mp:
+                item["price"] = f"¥{mp.group(1)}"
+                tf_price_cache[pid] = item["price"]
+    # 캐시 저장
+    import json as _j2
+    import os as _os
+    _os.makedirs("docs", exist_ok=True)
+    with open("docs/tf_price_cache.json","w",encoding="utf-8") as _f:
+        _j2.dump(tf_price_cache, _f, ensure_ascii=False)
     print(f"  → {len(items)} items")
     return items
 
@@ -214,44 +240,6 @@ def scrape_spacemoo():
         "link":f"https://www.spacemoo.jp/products/details/{pid}",
         "date":dr,"date_label":f"{dr[:4]}.{dr[4:6]}.{dr[6:8]}"} for pid,n,p,img,dr in static]
 
-def scrape_shop_pro(source, color, img_prefix, url, encoding="euc-jp"):
-    """shop-pro.jp 기반 사이트 공통 스크래퍼"""
-    print(f"[{source}] scraping...")
-    raw = fetch_raw(url)
-    if not raw: return []
-    try: html = raw.decode(encoding)
-    except: html = raw.decode("utf-8", errors="replace")
-
-    img_pat   = re.compile(
-        r'https://img\d+\.shop-pro\.jp/' + img_prefix +
-        r'/product/(\d+)_th\.(jpg|png)\?cmsp_timestamp=(\d{8})\d+'
-    )
-    name_pat  = re.compile(r'href="\?pid=\d+"[^>]*>(?:<img[^>]+>)*([^<]{4,100})</a>')
-    price_pat = re.compile(r'([\d,]+)円')
-
-    items, seen = [], set()
-    for mi in img_pat.finditer(html):
-        pid, ext, dr = mi.group(1), mi.group(2), mi.group(3)
-        if pid in seen: continue
-        seen.add(pid)
-        seg  = html[mi.start(): mi.start()+600]
-        mn   = name_pat.search(seg)
-        mp   = price_pat.search(seg)
-        name = unescape(mn.group(1)).strip() if mn else f"상품 {pid}"
-        # KAPITAL / kapital 접두어 정리
-        name = re.sub(r'^(?:KAPITAL|kapital|\[?kapital\]?)\s*[-/]?\s*', '', name, flags=re.IGNORECASE).strip()
-        items.append({
-            "source": source, "color": color,
-            "name": name,
-            "price": f"¥{mp.group(1)}" if mp else "-",
-            "img": f"https://img08.shop-pro.jp/{img_prefix}/product/{pid}_th.{ext}",
-            "link": f"{url.split('?')[0]}?pid={pid}",
-            "date": dr, "date_label": f"{dr[:4]}.{dr[4:6]}.{dr[6:8]}"
-        })
-    print(f"  → {len(items)} items")
-    return items
-
-
 def scrape_babooshka():
     return scrape_shop_pro_v2(
         "BABOOSHKA", "#38bdf8", "PA01038/438",
@@ -296,7 +284,7 @@ def scrape_stc():
             "date": datetime.now(KST).strftime("%Y%m%d"),
             "date_label": "신착"
         })
-    items = items[:10]
+    # 제한 없음
     print(f"  → {len(items)} items")
     return items
 
@@ -387,11 +375,9 @@ def scrape_selenium_sites():
                     EC.presence_of_element_located((By.CSS_SELECTOR, ".ec-shelfGrid__item"))
                 )
             except: pass
-            time.sleep(3)
+            time.sleep(2)
 
             html = driver.page_source
-            with open("/tmp/se7en_debug.html", "w", encoding="utf-8") as dbg:
-                dbg.write(html)
 
             # SE7EN 파싱
             items_se7 = []
@@ -436,21 +422,18 @@ def scrape_selenium_sites():
                     EC.presence_of_element_located((By.CSS_SELECTOR, "li"))
                 )
             except: pass
-            time.sleep(3)
+            time.sleep(2)
             try:
                 driver.execute_script("window.scrollTo(0, document.body.scrollHeight/2);")
-                time.sleep(2)
+                time.sleep(1)
             except: pass
 
             html = driver.page_source
-            with open("/tmp/kapital_debug.html", "w", encoding="utf-8") as dbg:
-                dbg.write(html)
 
             price_pat = re.compile(r'(\d[\d,]+)円')
             block_pat = re.compile(r'<li[^>]*class="item_list_box"[^>]*>(.*?)</li>', re.DOTALL)
             blocks = list(block_pat.finditer(html))
-            print(f"  [debug] html length: {len(html)}")
-            print(f"  [debug] item_list_box blocks: {len(blocks)}")
+
 
             items_kap = []
             seen_kap = set()
@@ -560,8 +543,8 @@ button:hover,button.active{border-color:#f0ede8;color:#f0ede8}
 .card:hover .ci img{transform:scale(1.05)}
 .nb{position:absolute;top:3px;right:3px;background:rgba(220,38,38,.85);color:#fff;font-size:7px;font-weight:700;padding:1px 4px;border-radius:1px;letter-spacing:.5px;z-index:2}
 .sd{position:absolute;top:4px;left:4px;width:5px;height:5px;border-radius:50%}
-.cb2{padding:4px 5px 4px;height:60px;min-height:60px;max-height:60px;display:flex;flex-direction:column;overflow:hidden}
-.cn{font-size:8px;line-height:1.35;color:#bbb;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;flex:1;word-break:break-all;margin:0}
+.cb2{padding:4px 5px 4px;height:62px;min-height:62px;max-height:62px;display:flex;flex-direction:column;overflow:hidden}
+.cn{font-size:8px;line-height:1.35;color:#bbb;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;flex:1;word-break:break-all;margin:0}
 .cf{display:flex;justify-content:space-between;align-items:center;flex-shrink:0;padding-top:2px}
 .cp{font-size:8.5px;font-weight:500;color:#f0ede8}
 .db{font-size:7.5px;color:#555}
@@ -590,7 +573,7 @@ def card_html(item):
     # 품번 추출 + 크림 버튼
     code = extract_item_code(item["source"], item["link"], item["name"])
     if code:
-        kream_url = f"https://kream.co.kr/search?tab=products&keyword={_up.quote('KAPITAL ' + code)}"
+        kream_url = f"https://kream.co.kr/search?tab=products&keyword={_up.quote(code)}"
         kream_btn = f'<a class="kb" href="{kream_url}" target="_blank" onclick="event.stopPropagation()">{code}</a>'
     else:
         kream_btn = ''
@@ -710,14 +693,14 @@ if __name__ == "__main__":
     # 현재 상품 목록 저장 (다음 실행 비교용)
     save_prev_items(current_keys)
 
-    # 60일 이내 필터 + 최신순 정렬
+    # 120일 이내 필터 + 최신순 정렬
     today = datetime.now(KST)
     cutoff = today - timedelta(days=120)
     cutoff_int = int(cutoff.strftime("%Y%m%d"))
 
     items = [i for i in all_items if int(i["date"]) >= cutoff_int]
     items.sort(key=lambda x: int(x["date"]), reverse=True)
-    # 사이트별 60개 제한 (출시일 최신순)
+    # 사이트별 그룹핑 후 정렬
     from collections import defaultdict
     site_groups = defaultdict(list)
     for i in items:
@@ -725,10 +708,10 @@ if __name__ == "__main__":
     items = []
     for src in site_groups:
         site_groups[src].sort(key=lambda x: int(x["date"]), reverse=True)
-        items.extend(site_groups[src][:60])
+        items.extend(site_groups[src])
     items.sort(key=lambda x: int(x["date"]), reverse=True)
 
-    print(f"  필터 후: {len(items)}개 (기준일: {cutoff.strftime('%Y.%m.%d')} 이후, 사이트별 최대 60개)")
+    print(f"  필터 후: {len(items)}개 (기준일: {cutoff.strftime('%Y.%m.%d')} 이후, 제한 없음)")
     with open("docs/index.html","w",encoding="utf-8") as f:
         f.write(build_html(items))
     print(f"\n✅ 완료 ({len(items)}개)")
