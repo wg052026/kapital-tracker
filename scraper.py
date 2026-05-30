@@ -523,7 +523,9 @@ def scrape_se7en():
                 "price": price,
                 "img": img, "link": link,
                 "date": datetime.now(KST).strftime("%Y%m%d"),
-                "date_label": "신착"
+                "date_label": "신착",
+                "sold_out": bool(re.search(r'完売|Sold\s*[Oo]ut|sold-out', seg, re.IGNORECASE)),
+                "sold_out": bool(re.search(r'完売|Sold\s*[Oo]ut|sold-out', seg, re.IGNORECASE)),
             })
             if len(items) >= 30:
                 break
@@ -569,6 +571,11 @@ def scrape_kapital_home():
         except:
             pass
         time.sleep(3)
+        # 스크롤로 JS 렌더링 트리거
+        try:
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight/2);")
+            time.sleep(2)
+        except: pass
 
         html = driver.page_source
         # 디버그용 저장
@@ -620,7 +627,8 @@ def scrape_kapital_home():
                 "name": name, "price": price,
                 "img": img, "link": ml.group(1),
                 "date": datetime.now(KST).strftime("%Y%m%d"),
-                "date_label": "신착"
+                "date_label": "신착",
+                "sold_out": False,
             })
             if len(items) >= 30:
                 break
@@ -695,8 +703,8 @@ button:hover,button.active{border-color:#f0ede8;color:#f0ede8}
 .card:hover .ci img{transform:scale(1.05)}
 .nb{position:absolute;top:3px;right:3px;background:rgba(220,38,38,.85);color:#fff;font-size:7px;font-weight:700;padding:1px 4px;border-radius:1px;letter-spacing:.5px;z-index:2}
 .sd{position:absolute;top:4px;left:4px;width:5px;height:5px;border-radius:50%}
-.cb2{padding:4px 5px 4px;height:72px;min-height:72px;max-height:72px;display:flex;flex-direction:column;overflow:hidden}
-.cn{font-size:8px;line-height:1.35;color:#bbb;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;flex:1;word-break:break-all;margin:0}
+.cb2{padding:4px 5px 4px;height:60px;min-height:60px;max-height:60px;display:flex;flex-direction:column;overflow:hidden}
+.cn{font-size:8px;line-height:1.35;color:#bbb;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;flex:1;word-break:break-all;margin:0}
 .cf{display:flex;justify-content:space-between;align-items:center;flex-shrink:0;padding-top:2px}
 .cp{font-size:8.5px;font-weight:500;color:#f0ede8}
 .db{font-size:7.5px;color:#555}
@@ -831,12 +839,12 @@ if __name__ == "__main__":
             kream_cache = _json.load(_f)
     except:
         kream_cache = {}
+    KREAM_SOURCES = {"KAPITAL 공홈", "S.T.C", "KEROUAC", "SPACE MOO"}
     new_items = [
         i for i in all_items
-        if i.get("is_new", False) or
-        f"{i['source']}:{i['link'].rstrip('/').split('/')[-1].split('?')[-1]}" not in kream_cache
-    ][:20]  # 최대 20개만 (시간 제한)
-    kream_prices = scrape_kream_prices(new_items)
+        if i["source"] in KREAM_SOURCES
+        and f"{i['source']}:{i['link'].rstrip('/').split('/')[-1].split('?')[-1]}" not in kream_cache
+    ][:15]
 
     kream_cache.update(kream_prices)
 
