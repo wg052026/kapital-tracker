@@ -455,94 +455,130 @@ def card_html(i):
         f'</div></a>'
     )
 
+SITE_ORDER = [
+    "KAPITAL 공홈","KEROUAC","TAKE FIVE","BLUE NEON",
+    "BABOOSHKA","AIN.DAH.ING","S.T.C","SE7EN","SPACE MOO",
+]
+SITE_COLORS = {
+    "KAPITAL 공홈":"#ff6b6b","KEROUAC":"#4a9eff","TAKE FIVE":"#f5c842",
+    "BLUE NEON":"#5ecb8f","BABOOSHKA":"#38bdf8","AIN.DAH.ING":"#a78bfa",
+    "S.T.C":"#34d399","SE7EN":"#fb923c","SPACE MOO":"#c084fc",
+}
+SITE_LABELS = {
+    "KAPITAL 공홈":"KAPITAL<br>공홈","KEROUAC":"KEROUAC","TAKE FIVE":"TAKE<br>FIVE",
+    "BLUE NEON":"BLUE<br>NEON","BABOOSHKA":"BABOOSHKA","AIN.DAH.ING":"AIN.DAH<br>.ING",
+    "S.T.C":"S.T.C","SE7EN":"SE7EN","SPACE MOO":"SPACE<br>MOO",
+}
+
 CSS = """<style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:#0e0e0e;color:#f0ede8;font-family:sans-serif;font-weight:300;min-height:100vh}
-header{border-bottom:1px solid #2a2a2a;padding:20px 24px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px}
-.logo{font-size:26px;font-weight:700;letter-spacing:4px;line-height:1}
-.logo span{color:#888;font-size:11px;font-weight:300;display:block;letter-spacing:2px;margin-top:3px}
-.meta{text-align:right;font-size:11px;color:#888;line-height:1.8}
-.legend{display:flex;gap:14px;padding:10px 24px;border-bottom:1px solid #2a2a2a;flex-wrap:wrap}
-.ld{display:flex;align-items:center;gap:5px;font-size:11px;color:#888}
-.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.filters{padding:10px 24px;display:flex;gap:7px;border-bottom:1px solid #2a2a2a;flex-wrap:wrap;align-items:center}
-.fl{font-size:11px;color:#888;letter-spacing:1px;margin-right:3px}
-button{background:transparent;border:1px solid #2a2a2a;color:#888;padding:4px 11px;font-size:11px;cursor:pointer;letter-spacing:1px;transition:all .15s;border-radius:2px;font-family:sans-serif}
+header{border-bottom:1px solid #2a2a2a;padding:14px 16px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:6px}
+.logo{font-size:22px;font-weight:700;letter-spacing:4px;line-height:1}
+.logo span{color:#555;font-size:10px;font-weight:300;display:block;letter-spacing:2px;margin-top:2px}
+.meta{font-size:10px;color:#555;text-align:right;line-height:1.7}
+.filters{padding:7px 16px;display:flex;gap:6px;border-bottom:1px solid #2a2a2a;align-items:center;flex-wrap:wrap}
+.fl{font-size:10px;color:#555;margin-right:3px;letter-spacing:1px}
+button{background:transparent;border:1px solid #2a2a2a;color:#555;padding:3px 10px;font-size:10px;cursor:pointer;border-radius:2px;font-family:sans-serif;transition:all .15s}
 button:hover,button.active{border-color:#f0ede8;color:#f0ede8}
-.cbar{padding:7px 24px;font-size:12px;color:#888;border-bottom:1px solid #2a2a2a}
-.cbar span{color:#f0ede8;font-weight:500}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1px;background:#2a2a2a}
-.card{background:#0e0e0e;transition:background .15s;display:block;text-decoration:none;color:inherit}
+.cbar{padding:5px 16px;font-size:10px;color:#555;border-bottom:1px solid #2a2a2a}
+.cbar span{color:#f0ede8}
+.grid-wrap{overflow-x:auto;width:100%}
+.site-grid{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);border-left:1px solid #2a2a2a;min-width:0}
+.site-col{border-right:1px solid #2a2a2a;min-width:0}
+.site-header{padding:5px 3px;text-align:center;font-size:8.5px;font-weight:500;letter-spacing:.5px;border-bottom:1px solid #2a2a2a;background:#111;position:sticky;top:0;z-index:5;line-height:1.4}
+.cards-wrap{padding:2px}
+.card{display:block;text-decoration:none;color:inherit;background:#111;border-radius:2px;overflow:hidden;width:100%;margin-bottom:2px;position:relative}
 .card:hover{background:#1a1a1a}
-.ci{width:100%;aspect-ratio:1/1;overflow:hidden;position:relative;background:#1a1a1a;display:block}
-.ci img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s}
-.card:hover .ci img{transform:scale(1.04)}
-.sd{position:absolute;top:8px;left:8px;width:7px;height:7px;border-radius:50%}
-.cb2{padding:10px 12px 12px;border-top:1px solid #2a2a2a}
-.st{font-size:9px;letter-spacing:2px;margin-bottom:4px;font-weight:500;display:block}
-.cn{font-size:11px;line-height:1.5;color:#f0ede8;margin-bottom:7px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-weight:300}
+.card.hidden{display:none!important}
+.ci{width:100%;aspect-ratio:1/1;overflow:hidden;background:#1a1a1a;position:relative}
+.ci img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
+.card:hover .ci img{transform:scale(1.05)}
+.nb{position:absolute;top:3px;right:3px;background:rgba(220,38,38,.85);color:#fff;font-size:7px;font-weight:700;padding:1px 4px;border-radius:1px;letter-spacing:.5px;z-index:2}
+.sd{position:absolute;top:4px;left:4px;width:5px;height:5px;border-radius:50%}
+.cb2{padding:3px 4px 4px}
+.cn{font-size:8.5px;line-height:1.4;color:#bbb;margin-bottom:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .cf{display:flex;justify-content:space-between;align-items:center}
-.cp{font-size:12px;font-weight:500;color:#f0ede8}
-.db{font-size:9px;color:#888;border:1px solid #2a2a2a;padding:2px 5px;border-radius:2px;white-space:nowrap}
-.notice{padding:14px 24px;font-size:11px;color:#888;line-height:1.8;border-top:1px solid #2a2a2a}
-footer{padding:14px 24px;border-top:1px solid #2a2a2a;font-size:11px;color:#888;text-align:center;letter-spacing:1px}
-.hidden{display:none!important}
-
+.cp{font-size:8.5px;font-weight:500;color:#f0ede8}
+.db{font-size:7.5px;color:#555}
+.empty{font-size:9px;color:#333;text-align:center;padding:10px 2px}
+.notice{padding:12px 16px;font-size:10px;color:#555;line-height:1.8;border-top:1px solid #2a2a2a}
+footer{padding:10px 16px;border-top:1px solid #2a2a2a;font-size:10px;color:#555;text-align:center;letter-spacing:1px}
 </style>"""
 
 JS = """<script>
-var cs=Array.from(document.querySelectorAll('.card[data-source]'));
-cs.sort(function(a,b){return parseInt(b.dataset.date)-parseInt(a.dataset.date)});
-var g=document.getElementById('grid');
-cs.forEach(function(c){g.appendChild(c)});
+var curDays=1;
 
-var curSrc='ALL', curDays=3;
-
-function getDateInt(daysAgo){
+function getCutoff(days){
   var d=new Date();
-  d.setDate(d.getDate()-daysAgo);
-  var y=d.getFullYear();
-  var m=String(d.getMonth()+1).padStart(2,'0');
-  var day=String(d.getDate()).padStart(2,'0');
-  return parseInt(y+m+day);
+  d.setDate(d.getDate()-days);
+  return parseInt(d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'));
 }
 
 function applyFilter(){
-  var cutoff=getDateInt(curDays);
-  var n=0;
-  cs.forEach(function(c){
-    var srcOk=curSrc==='ALL'||c.dataset.source===curSrc;
-    var dateOk=parseInt(c.dataset.date)>=cutoff;
-    var show=srcOk&&dateOk;
+  var cutoff=getCutoff(curDays);
+  var total=0;
+  document.querySelectorAll('.card[data-date]').forEach(function(c){
+    var show=parseInt(c.dataset.date)>=cutoff;
     c.classList.toggle('hidden',!show);
-    if(show)n++;
+    if(show)total++;
   });
-  document.getElementById('cnt').textContent=n;
-}
-
-function filt(src){
-  curSrc=src;
-  document.querySelectorAll('button[data-source]').forEach(function(b){b.classList.remove('active')});
-  document.querySelector('button[data-source="'+src+'"]').classList.add('active');
-  applyFilter();
+  document.getElementById('cnt').textContent=total;
 }
 
 function filtDays(days){
   curDays=days;
-  curMode='normal';
   document.querySelectorAll('.dbtn').forEach(function(b){b.classList.remove('active')});
   document.querySelector('.dbtn[data-days="'+days+'"]').classList.add('active');
-  document.querySelectorAll('button[data-new]').forEach(function(b){b.classList.remove('active')});
   applyFilter();
 }
 
-var curMode='normal';
-// 초기: 1일 필터 적용
 filtDays(1);
 </script>"""
 
+
+def card_html(item):
+    oe = "this.style.display='none'"
+    color = SITE_COLORS.get(item["source"], "#888")
+    is_new = item.get("is_new", False)
+    nb = '<span class="nb">NEW</span>' if is_new else ''
+    return (
+        f'<a class="card" data-date="{item["date"]}" href="{item["link"]}" target="_blank">'
+        f'<div class="ci"><img src="{item["img"]}" onerror="{oe}">'
+        f'{nb}<div class="sd" style="background:{color}"></div></div>'
+        f'<div class="cb2"><p class="cn">{item["name"]}</p>'
+        f'<div class="cf"><span class="cp">{item["price"]}</span>'
+        f'<span class="db">{item["date_label"]}</span></div>'
+        f'</div></a>'
+    )
+
+
 def build_html(items):
-    cards = "\n".join(card_html(i) for i in items)
+    # 사이트별 그룹핑 (최신순 정렬)
+    site_map = {s: [] for s in SITE_ORDER}
+    for item in items:
+        s = item["source"]
+        if s in site_map:
+            site_map[s].append(item)
+    for s in SITE_ORDER:
+        site_map[s].sort(key=lambda x: int(x["date"]), reverse=True)
+
+    # 사이트 컬럼 생성
+    n = len(SITE_ORDER)
+    cols_html = ""
+    for s in SITE_ORDER:
+        color = SITE_COLORS[s]
+        label = SITE_LABELS[s]
+        site_items = site_map[s]
+        cards = "".join(card_html(i) for i in site_items)
+        empty = '<div class="empty">-</div>' if not site_items else ""
+        cols_html += (
+            f'<div class="site-col">'
+            f'<div class="site-header" style="color:{color}">{label}</div>'
+            f'<div class="cards-wrap">{cards}{empty}</div>'
+            f'</div>'
+        )
+
     return f"""<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -554,32 +590,8 @@ def build_html(items):
 <body>
 <header>
   <div class="logo">KAPITAL <span>NEW ARRIVALS TRACKER</span></div>
-  <div class="meta">업데이트: {NOW}<br>총 {len(items)}개 · 등록일 최신순</div>
+  <div class="meta">업데이트: {NOW}<br>총 {len(items)}개</div>
 </header>
-<div class="legend">
-  <div class="ld"><div class="dot" style="background:#5ecb8f"></div>BLUE NEON</div>
-  <div class="ld"><div class="dot" style="background:#4a9eff"></div>KEROUAC</div>
-  <div class="ld"><div class="dot" style="background:#f5c842"></div>TAKE FIVE</div>
-  <div class="ld"><div class="dot" style="background:#c084fc"></div>SPACE MOO</div>
-  <div class="ld"><div class="dot" style="background:#38bdf8"></div>BABOOSHKA</div>
-  <div class="ld"><div class="dot" style="background:#a78bfa"></div>AIN.DAH.ING</div>
-  <div class="ld"><div class="dot" style="background:#34d399"></div>S.T.C</div>
-  <div class="ld"><div class="dot" style="background:#fb923c"></div>SE7EN</div>
-  <div class="ld"><div class="dot" style="background:#ff6b6b"></div>KAPITAL 공홈</div>
-</div>
-<div class="filters">
-  <span class="fl">SHOP</span>
-  <button class="active" data-source="ALL" onclick="filt('ALL')">ALL</button>
-  <button data-source="BLUE NEON" onclick="filt('BLUE NEON')">BLUE NEON</button>
-  <button data-source="KEROUAC" onclick="filt('KEROUAC')">KEROUAC</button>
-  <button data-source="TAKE FIVE" onclick="filt('TAKE FIVE')">TAKE FIVE</button>
-  <button data-source="SPACE MOO" onclick="filt('SPACE MOO')">SPACE MOO</button>
-  <button data-source="BABOOSHKA" onclick="filt('BABOOSHKA')">BABOOSHKA</button>
-  <button data-source="AIN.DAH.ING" onclick="filt('AIN.DAH.ING')">AIN.DAH.ING</button>
-  <button data-source="S.T.C" onclick="filt('S.T.C')">S.T.C</button>
-  <button data-source="SE7EN" onclick="filt('SE7EN')">SE7EN</button>
-  <button data-source="KAPITAL 공홈" onclick="filt('KAPITAL 공홈')">KAPITAL 공홈</button>
-</div>
 <div class="filters">
   <span class="fl">DAYS</span>
   <button class="dbtn active" data-days="1" onclick="filtDays(1)">1일</button>
@@ -589,15 +601,20 @@ def build_html(items):
   <button class="dbtn" data-days="60" onclick="filtDays(60)">60일</button>
 </div>
 <div class="cbar">총 <span id="cnt">{len(items)}</span>개 표시 중</div>
-<div class="grid" id="grid">{cards}</div>
+<div class="grid-wrap">
+  <div class="site-grid" style="grid-template-columns:repeat({n},minmax(0,1fr))">
+    {cols_html}
+  </div>
+</div>
 <div class="notice">
-  ※ Blue Neon·Take Five: 이미지 타임스탬프 기준 | Kerouac: 날짜 미노출 → 26SS 신착 | Space Moo: 입고일 기준<br>
-  ※ 캐피탈 공홈·SE7EN: robots 차단으로 수집 불가
+  ※ Blue Neon·Take Five·Babooshka·AIN.DAH.ING: 이미지 타임스탬프 기준<br>
+  ※ Kerouac·S.T.C·SE7EN·KAPITAL 공홈: 최초 등장일 기준 (이후 고정)
 </div>
 <footer>KAPITAL TRACKER · GitHub Actions 6시간마다 자동 업데이트</footer>
 {JS}
 </body>
 </html>"""
+
 
 if __name__ == "__main__":
     os.makedirs("docs", exist_ok=True)
