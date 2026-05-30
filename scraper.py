@@ -448,7 +448,7 @@ def scrape_selenium_sites():
         # ── KAPITAL 공홈 ───────────────────────────
         print("[Kapital Home] scraping with selenium...")
         try:
-            driver.get("https://www.kapital-webshop.jp/item_list.html?sort=3&dispno=40")
+            driver.get("https://www.kapital-webshop.jp/item_list.html?sort=3&dispno=60")
             try:
                 WebDriverWait(driver, 12).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "li"))
@@ -465,25 +465,7 @@ def scrape_selenium_sites():
             price_pat = re.compile(r'(\d[\d,]+)円')
             block_pat = re.compile(r'<li[^>]*class="item_list_box"[^>]*>(.*?)</li>', re.DOTALL)
             blocks = list(block_pat.finditer(html))
-            # 2페이지도 Selenium으로 가져오기
-            try:
-                driver.get("https://www.kapital-webshop.jp/item_list.html?sort=3&dispno=40&pageno=2")
-                try:
-                    WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located((By.CSS_SELECTOR, "li.item_list_box"))
-                    )
-                except: pass
-                time.sleep(3)
-                try:
-                    driver.execute_script("window.scrollTo(0, document.body.scrollHeight/2);")
-                    time.sleep(1)
-                except: pass
-                html2 = driver.page_source
-                blocks2 = list(block_pat.finditer(html2))
-                print(f"  [debug] 2페이지 blocks: {len(blocks2)}")
-                blocks = blocks + blocks2
-            except Exception as e2:
-                print(f"  [WARN] 2페이지 실패: {e2}")
+
 
 
             items_kap = []
