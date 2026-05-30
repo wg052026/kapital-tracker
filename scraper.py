@@ -470,14 +470,20 @@ def scrape_selenium_sites():
                 driver.get("https://www.kapital-webshop.jp/item_list.html?sort=3&dispno=40&pageno=2")
                 try:
                     WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located((By.CSS_SELECTOR, "li"))
+                        EC.presence_of_element_located((By.CSS_SELECTOR, "li.item_list_box"))
                     )
                 except: pass
-                time.sleep(2)
+                time.sleep(3)
+                try:
+                    driver.execute_script("window.scrollTo(0, document.body.scrollHeight/2);")
+                    time.sleep(1)
+                except: pass
                 html2 = driver.page_source
-                blocks += list(block_pat.finditer(html2))
-                print(f"  [debug] 2페이지 blocks: {len(list(block_pat.finditer(html2)))}")
-            except: pass
+                blocks2 = list(block_pat.finditer(html2))
+                print(f"  [debug] 2페이지 blocks: {len(blocks2)}")
+                blocks = blocks + blocks2
+            except Exception as e2:
+                print(f"  [WARN] 2페이지 실패: {e2}")
 
 
             items_kap = []
@@ -576,10 +582,11 @@ button:hover,button.active{border-color:#f0ede8;color:#f0ede8}
 .cbar{padding:5px 16px;font-size:10px;color:#555;border-bottom:1px solid #2a2a2a}
 .cbar span{color:#f0ede8}
 .grid-wrap{overflow-x:auto;width:100%}
-.site-grid{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);border-left:1px solid #2a2a2a;min-width:0;align-items:start}
-.site-col{border-right:1px solid #2a2a2a;min-width:0}
-.site-col--wide{border-right:1px solid #2a2a2a;min-width:0;grid-column:span 2}
-.cards-wrap--2col{display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:2px}
+.site-grid{display:flex;flex-direction:row;border-left:1px solid #2a2a2a;min-width:0;align-items:start}
+.site-col{border-right:1px solid #2a2a2a;min-width:0;flex:1}
+.site-col--wide{border-right:1px solid #2a2a2a;min-width:0;flex:2}
+.site-col--wide{border-right:1px solid #2a2a2a;min-width:0}
+.cards-wrap--2col{display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:2px;align-items:start}
 .site-header{padding:0 3px;text-align:center;font-size:8.5px;font-weight:500;letter-spacing:.5px;border-bottom:1px solid #2a2a2a;background:#111;position:sticky;top:0;z-index:5;line-height:1.3;height:44px;min-height:44px;max-height:44px;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .cards-wrap{padding:2px}
 .card{display:block;text-decoration:none;color:inherit;background:#111;border-radius:2px;overflow:hidden;width:100%;margin-bottom:2px;position:relative}
@@ -689,7 +696,7 @@ def build_html(items):
 </header>
 <div class="cbar">총 <span id="cnt">{len(items)}</span>개 표시 중 (최근 120일)</div>
 <div class="grid-wrap">
-  <div class="site-grid" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr">
+  <div class="site-grid">
     {cols_html}
   </div>
 </div>
