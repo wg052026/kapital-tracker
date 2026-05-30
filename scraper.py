@@ -56,38 +56,50 @@ def get_item_date(cache, source, item_id, today):
     return cache[key]
 
 
-def scrape_blueneon():
-    print("[Blue Neon] scraping...")
-    raw = fetch_raw("https://blueneon.jp/?mode=grp&gid=613974&sort=n")
+def scrape_shop_pro_v2(source, color, img_prefix, base_url, cat_name=None):
+    """shop-pro.jp 공통 스크래퍼 v2 - 원본 HTML 기준"""
+    print(f"[{source}] scraping...")
+    raw = fetch_raw(base_url)
     if not raw: return []
     try: html = raw.decode("euc-jp")
     except: html = raw.decode("utf-8", errors="replace")
 
-    # 실제 마크다운 변환 후 구조:
-    # [![](img?cmsp_timestamp=YYYYMMDD)](link)
-    # [KAPITAL - 상품명](link)
-    # 가격円
-    img_pat   = re.compile(r'https://img\d+\.shop-pro\.jp/PA01239/545/product/(\d+)_th\.jpg\?cmsp_timestamp=(\d{8})\d+')
-    name_pat  = re.compile(r'\[KAPITAL\s*-\s*([^\]]+)\]\(https://blueneon')
+    img_pat   = re.compile(
+        r'https://img\d+\.shop-pro\.jp/' + img_prefix +
+        r'/product/(\d+)_th\.(jpg|png)\?cmsp_timestamp=(\d{8})\d+'
+    )
+    name_pat  = re.compile(r'href="\?pid=\d+"[^>]*>(?:KAPITAL\s*[-/]\s*|\[KAPITAL\]\s*)?([^<]{4,100})</a>')
     price_pat = re.compile(r'([\d,]+)円')
+    sold_pat  = re.compile(r'SOLD\s*OUT|完売|sold[-_]out', re.IGNORECASE)
 
-    items = []
+    items, seen = [], set()
     for mi in img_pat.finditer(html):
-        pid, dr = mi.group(1), mi.group(2)
-        seg = html[mi.start(): mi.start()+400]
-        mn = name_pat.search(seg)
-        mp = price_pat.search(seg)
+        pid, ext, dr = mi.group(1), mi.group(2), mi.group(3)
+        if pid in seen: continue
+        seen.add(pid)
+        seg = html[mi.start(): mi.start()+600]
+        mn  = name_pat.search(seg)
+        mp  = price_pat.search(seg)
+        sold = bool(sold_pat.search(seg))
         name = unescape(mn.group(1)).strip() if mn else f"상품 {pid}"
         items.append({
-            "source":"BLUE NEON","color":"#5ecb8f",
+            "source": source, "color": color,
             "name": name,
             "price": f"¥{mp.group(1)}" if mp else "-",
-            "img": f"https://img15.shop-pro.jp/PA01239/545/product/{pid}_th.jpg",
-            "link": f"https://blueneon.jp/?pid={pid}",
-            "date": dr, "date_label": f"{dr[:4]}.{dr[4:6]}.{dr[6:8]}"
+            "img": f"https://img15.shop-pro.jp/{img_prefix}/product/{pid}_th.{ext}",
+            "link": f"{base_url.split('?')[0]}?pid={pid}",
+            "date": dr, "date_label": f"{dr[:4]}.{dr[4:6]}.{dr[6:8]}",
+            "sold_out": sold,
         })
-    print(f"  → {len(items)} items")
+    print(f"  → {len(items)} items (품절 {sum(1 for i in items if i['sold_out'])}개)")
     return items
+
+
+def scrape_blueneon():
+    return scrape_shop_pro_v2(
+        "BLUE NEON", "#5ecb8f", "PA01239/545",
+        "https://blueneon.jp/?mode=grp&gid=613974&sort=n"
+    )
 
 def scrape_takefive():
     print("[Take Five] scraping...")
@@ -222,16 +234,14 @@ def scrape_shop_pro(source, color, img_prefix, url, encoding="euc-jp"):
 
 
 def scrape_babooshka():
-    return scrape_shop_pro(
-        "BABOOSHKA", "#38bdf8",
-        "PA01038/438",
+    return scrape_shop_pro_v2(
+        "BABOOSHKA", "#38bdf8", "PA01038/438",
         "https://bab-web.shop-pro.jp/?mode=cate&cbid=1739088&csid=1&sort=n"
     )
 
 def scrape_aindahing():
-    return scrape_shop_pro(
-        "AIN.DAH.ING", "#a78bfa",
-        "PA01135/633",
+    return scrape_shop_pro_v2(
+        "AIN.DAH.ING", "#a78bfa", "PA01135/633",
         "http://ain-dah-ing.shop-pro.jp/?mode=cate&cbid=1008715&csid=0&sort=n"
     )
 
@@ -284,9 +294,9 @@ def get_kream_price(driver, item_name, wait_sec=4):
 
         html = driver.page_source
         # 즉시구매가 패턴: "즉시구매가" 뒤에 나오는 금액
-        price_pat = re.compile(r'즉시구매가[^\d]*([\d,]+)원')
+        price_pat = re.compile(r'즉시구매가[^0-9]*(\d[\d,]+)원')
         # 또는 상품 카드 내 가격
-        card_pat  = re.compile(r'class="[^"]*buy_now_price[^"]*"[^>]*>[^<]*?([\d,]+)원')
+        card_pat  = re.compile(r'buy.now.price[^>]*>[^<]*(\d[\d,]+)원', re.IGNORECASE)
 
         m = price_pat.search(html) or card_pat.search(html)
         if m:
