@@ -1,8 +1,30 @@
-name: KAPITAL Tracker - Daily Update
+name: KAPITAL Tracker - Auto Update
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    # 07:00~15:00 KST = 22:00~06:00 UTC → 매시 정각
+    - cron: '0 22 * * *'   # 07:00 KST
+    - cron: '0 23 * * *'   # 08:00 KST
+    - cron: '0 0 * * *'    # 09:00 KST
+    - cron: '0 1 * * *'    # 10:00 KST
+    - cron: '0 2 * * *'    # 11:00 KST
+    - cron: '0 3 * * *'    # 12:00 KST
+    - cron: '0 4 * * *'    # 13:00 KST
+    - cron: '0 5 * * *'    # 14:00 KST
+
+    # 15:00~19:00 KST = 06:00~10:00 UTC → 매 10분
+    - cron: '0,10,20,30,40,50 6 * * *'   # 15:00~16:00 KST
+    - cron: '0,10,20,30,40,50 7 * * *'   # 16:00~17:00 KST
+    - cron: '0,10,20,30,40,50 8 * * *'   # 17:00~18:00 KST
+    - cron: '0,10,20,30,40,50 9 * * *'   # 18:00~19:00 KST
+
+    # 19:00~24:00 KST = 10:00~15:00 UTC → 매시 정각
+    - cron: '0 10 * * *'   # 19:00 KST
+    - cron: '0 11 * * *'   # 20:00 KST
+    - cron: '0 12 * * *'   # 21:00 KST
+    - cron: '0 13 * * *'   # 22:00 KST
+    - cron: '0 14 * * *'   # 23:00 KST
+
   workflow_dispatch:
 
 permissions:
@@ -27,18 +49,16 @@ jobs:
           sudo apt-get install -y -q google-chrome-stable
           pip install selenium webdriver-manager
 
-      - name: 최신 상태로 동기화
-        run: |
-          git config user.name "kapital-bot"
-          git config user.email "bot@kapital-tracker"
-          git pull --rebase origin main
-
       - name: 크롤링 실행
         run: python scraper.py
 
       - name: 결과 커밋 & 푸시
         run: |
+          git config user.name "kapital-bot"
+          git config user.email "bot@kapital-tracker"
           git add docs/index.html docs/date_cache.json docs/prev_items.json
           git diff --cached --quiet && echo "변경 없음" && exit 0
           git commit -m "auto update $(date '+%Y-%m-%d %H:%M KST' -d '+9 hours')"
+          git fetch origin main
+          git rebase origin/main
           git push origin main
