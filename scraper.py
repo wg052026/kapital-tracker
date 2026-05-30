@@ -465,6 +465,18 @@ def scrape_selenium_sites():
             price_pat = re.compile(r'(\d[\d,]+)円')
             block_pat = re.compile(r'<li[^>]*class="item_list_box"[^>]*>(.*?)</li>', re.DOTALL)
             blocks = list(block_pat.finditer(html))
+            # 2페이지도 Selenium으로 가져오기
+            try:
+                driver.get("https://www.kapital-webshop.jp/item_list.html?sort=3&dispno=40&pageno=2")
+                try:
+                    WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, "li"))
+                    )
+                except: pass
+                time.sleep(2)
+                html2 = driver.page_source
+                blocks += list(block_pat.finditer(html2))
+            except: pass
 
 
             items_kap = []
