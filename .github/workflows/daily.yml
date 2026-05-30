@@ -37,11 +37,27 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Chrome 캐시 복원
+        uses: actions/cache@v4
+        id: chrome-cache
+        with:
+          path: /usr/bin/google-chrome-stable
+          key: chrome-${{ runner.os }}-v1
+
       - name: Chrome 설치
+        if: steps.chrome-cache.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q google-chrome-stable
-          pip install selenium webdriver-manager
+
+      - name: pip 캐시 복원
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-selenium-${{ runner.os }}-v1
+
+      - name: Python 패키지 설치
+        run: pip install selenium webdriver-manager
 
       - name: 크롤링 실행
         run: python scraper.py
@@ -50,7 +66,7 @@ jobs:
         run: |
           git config user.name "kapital-bot"
           git config user.email "bot@kapital-tracker"
-          git add docs/index.html docs/date_cache.json docs/prev_items.json docs/kream_cache.json
+          git add docs/index.html docs/date_cache.json docs/prev_items.json docs/tf_price_cache.json
           git diff --cached --quiet && echo "변경 없음" && exit 0
           git commit -m "auto update $(date '+%Y-%m-%d %H:%M KST' -d '+9 hours')"
           git fetch origin main
