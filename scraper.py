@@ -564,11 +564,8 @@ button:hover,button.active{border-color:#f0ede8;color:#f0ede8}
 .cbar{padding:5px 16px;font-size:10px;color:#555;border-bottom:1px solid #2a2a2a}
 .cbar span{color:#f0ede8}
 .grid-wrap{overflow-x:auto;width:100%}
-.site-grid{display:flex;flex-direction:row;border-left:1px solid #2a2a2a;min-width:0;align-items:start}
-.site-col{border-right:1px solid #2a2a2a;min-width:0;flex:1}
-.site-col--wide{border-right:1px solid #2a2a2a;min-width:0;flex:2}
-.site-col--wide{border-right:1px solid #2a2a2a;min-width:0}
-.cards-wrap--2col{display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:2px;align-items:start}
+.site-grid{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);border-left:1px solid #2a2a2a;min-width:0;align-items:start}
+.site-col{border-right:1px solid #2a2a2a;min-width:0}
 .site-header{padding:0 3px;text-align:center;font-size:8.5px;font-weight:500;letter-spacing:.5px;border-bottom:1px solid #2a2a2a;background:#111;position:sticky;top:0;z-index:5;line-height:1.3;height:44px;min-height:44px;max-height:44px;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .cards-wrap{padding:2px}
 .card{display:block;text-decoration:none;color:inherit;background:#111;border-radius:2px;overflow:hidden;width:100%;margin-bottom:2px;position:relative}
@@ -648,20 +645,12 @@ def build_html(items):
         site_items = site_map[s]
         cards = "".join(card_html(i) for i in site_items)
         empty = '<div class="empty">-</div>' if not site_items else ""
-        if s == "KAPITAL 공홈":
-            cols_html += (
-                f'<div class="site-col site-col--wide">'
-                f'<div class="site-header" style="color:{color}">{label}</div>'
-                f'<div class="cards-wrap cards-wrap--2col">{cards}{empty}</div>'
-                f'</div>'
-            )
-        else:
-            cols_html += (
-                f'<div class="site-col">'
-                f'<div class="site-header" style="color:{color}">{label}</div>'
-                f'<div class="cards-wrap">{cards}{empty}</div>'
-                f'</div>'
-            )
+        cols_html += (
+            f'<div class="site-col">'
+            f'<div class="site-header" style="color:{color}">{label}</div>'
+            f'<div class="cards-wrap">{cards}{empty}</div>'
+            f'</div>'
+        )
 
     return f"""<!DOCTYPE html>
 <html lang="ko">
