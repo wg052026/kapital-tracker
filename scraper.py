@@ -272,6 +272,75 @@ def scrape_stc():
     return items
 
 
+def get_kream_price(driver, item_name, wait_sec=4):
+    """Selenium으로 크림에서 상품 검색 후 즉시구매가 반환"""
+    try:
+        import time
+        # 상품명 앞 핵심 키워드만 추출 (30자 이내)
+        keyword = item_name[:40].strip()
+        url = f"https://kream.co.kr/search?tab=products&keyword={urllib.parse.quote(keyword)}"
+        driver.get(url)
+        time.sleep(wait_sec)
+
+        html = driver.page_source
+        # 즉시구매가 패턴: "즉시구매가" 뒤에 나오는 금액
+        price_pat = re.compile(r'즉시구매가[^\d]*([\d,]+)원')
+        # 또는 상품 카드 내 가격
+        card_pat  = re.compile(r'class="[^"]*buy_now_price[^"]*"[^>]*>[^<]*?([\d,]+)원')
+
+        m = price_pat.search(html) or card_pat.search(html)
+        if m:
+            return f"₩{m.group(1)}"
+
+        # 대안: 첫 번째 상품 가격 추출
+        general = re.findall(r'([\d]{2,3},[\d]{3})원', html)
+        if general:
+            return f"₩{general[0]}"
+
+        return None
+    except Exception as e:
+        return None
+
+
+def scrape_kream_prices(new_items):
+    """새로 등장한 상품들만 크림 가격 조회"""
+    if not new_items:
+        return {}
+
+    print(f"[KREAM] {len(new_items)}개 새 상품 가격 조회...")
+    prices = {}
+    try:
+        from selenium import webdriver
+        from selenium.webdriver.chrome.options import Options
+        import urllib.parse as urllib_parse
+
+        opts = Options()
+        opts.add_argument("--headless")
+        opts.add_argument("--no-sandbox")
+        opts.add_argument("--disable-dev-shm-usage")
+        opts.add_argument("--disable-gpu")
+        opts.add_argument("--window-size=1280,800")
+        opts.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36")
+
+        driver = webdriver.Chrome(options=opts)
+
+        for item in new_items:
+            key = f"{item['source']}:{item['link'].rstrip('/').split('/')[-1].split('?')[-1]}"
+            price = get_kream_price(driver, item['name'])
+            if price:
+                prices[key] = price
+                print(f"  ✅ {item['name'][:30]} → {price}")
+            else:
+                print(f"  ❌ {item['name'][:30]} → 없음")
+
+        driver.quit()
+    except Exception as e:
+        print(f"  [WARN] KREAM Selenium 실패: {e}")
+
+    print(f"  → {len(prices)}개 가격 확인")
+    return prices
+
+
 def scrape_chromehearts():
     print("[Chrome Hearts] scraping...")
     # 스카프 카테고리별 개별 상품 페이지 목록
@@ -576,6 +645,7 @@ button:hover,button.active{border-color:#f0ede8;color:#f0ede8}
 .cf{display:flex;justify-content:space-between;align-items:center}
 .cp{font-size:8.5px;font-weight:500;color:#f0ede8}
 .db{font-size:7.5px;color:#555}
+.kp{font-size:8px;color:#e2c97e;padding:2px 4px 3px;border-top:1px solid #222;letter-spacing:.3px}
 .empty{font-size:9px;color:#333;text-align:center;padding:10px 2px}
 .notice{padding:12px 16px;font-size:10px;color:#555;line-height:1.8;border-top:1px solid #2a2a2a}
 footer{padding:10px 16px;border-top:1px solid #2a2a2a;font-size:10px;color:#555;text-align:center;letter-spacing:1px}
@@ -603,7 +673,8 @@ def card_html(item):
         f'<div class="cb2"><p class="cn">{item["name"]}</p>'
         f'<div class="cf"><span class="cp">{item["price"]}</span>'
         f'<span class="db">{item["date_label"]}</span></div>'
-        f'</div></a>'
+        + (f'<div class="kp">KREAM {item["kream_price"]}</div>' if item.get("kream_price") else "")
+        + f'</div></a>'
     )
 
 
@@ -696,6 +767,30 @@ if __name__ == "__main__":
 
     # 캐시 저장
     save_date_cache(cache)
+
+    # NEW 상품만 크림 가격 조회
+    new_items = [i for i in all_items if i.get("is_new", False)]
+    kream_prices = scrape_kream_prices(new_items)
+
+    # 크림 가격 캐시 로드 및 업데이트
+    try:
+        import json
+        with open("docs/kream_cache.json", "r", encoding="utf-8") as f:
+            kream_cache = json.load(f)
+    except:
+        kream_cache = {}
+
+    kream_cache.update(kream_prices)
+
+    with open("docs/kream_cache.json", "w", encoding="utf-8") as f:
+        json.dump(kream_cache, f, ensure_ascii=False, indent=2)
+
+    # 전체 상품에 크림 가격 적용
+    for item in all_items:
+        item_id = item["link"].rstrip("/").split("/")[-1].split("?")[-1]
+        key = f"{item['source']}:{item_id}"
+        if key in kream_cache:
+            item["kream_price"] = kream_cache[key]
 
     # 상품 키 생성 및 NEW 마킹
     current_keys = set()
