@@ -282,125 +282,6 @@ def scrape_stc():
     return items
 
 
-def get_kream_price(driver, item_name, item_info=None, wait_sec=5):
-    """Selenium으로 크림에서 상품 검색 후 즉시구매가 반환"""
-    try:
-        import time
-        # 상품명 앞 핵심 키워드만 추출 (30자 이내)
-        # 품번 기반 검색만 수행 - 품번 없으면 스킵
-        source = (item_info or {}).get("source", "")
-        link   = (item_info or {}).get("link", "")
-        code = None
-
-        if source == "KAPITAL 공홈":
-            # URL에서 직접 추출
-            m = re.search(r'/item/([A-Z][A-Z0-9\-]+)\.html', link)
-            if m: code = m.group(1)
-
-        elif source == "S.T.C":
-            # 상품 페이지에서 품번 추출
-            raw = fetch_raw(link)
-            if raw:
-                page = raw.decode("utf-8", errors="replace")
-                m = re.search(r'品番</p>.*?<span[^>]*>([A-Z][A-Z0-9\-/]+)</span>', page, re.DOTALL)
-                if m: code = m.group(1)
-                else:
-                    # URL에서 직접
-                    m2 = re.search(r'/item/([A-Z][A-Z0-9\-]+)/', link)
-                    if m2: code = m2.group(1)
-
-        elif source == "KEROUAC":
-            # 상품 페이지에서 品番 추출
-            raw = fetch_raw(link)
-            if raw:
-                page = raw.decode("utf-8", errors="replace")
-                m = re.search(r'品番[：:\s]+(\S+)', page)
-                if m: code = m.group(1).strip()
-
-        elif source == "SPACE MOO":
-            # 상품명이나 페이지에서 품번 추출 (EK-1399XB 형태)
-            name = (item_info or {}).get("name", "")
-            m = re.search(r'\(([A-Z]{2}-\d{4}[A-Z]{0,3})\)', name)
-            if m:
-                code = m.group(1)
-            else:
-                raw = fetch_raw(link)
-                if raw:
-                    page = raw.decode("utf-8", errors="replace")
-                    m = re.search(r'\(([A-Z]{2}-\d{4}[A-Z]{0,3})\)', page)
-                    if m: code = m.group(1)
-
-        # 품번 없으면 스킵
-        if not code:
-            return None
-
-        keyword = f"KAPITAL {code}"
-        import urllib.parse as _up
-        keyword = f"KAPITAL {code}"
-        import urllib.parse as _up
-        url = f"https://kream.co.kr/search?tab=products&keyword={_up.quote(keyword)}"
-        driver.get(url)
-        time.sleep(wait_sec)
-
-        html = driver.page_source
-        # 즉시구매가 패턴: "즉시구매가" 뒤에 나오는 금액
-        price_pat = re.compile(r'즉시구매가[^0-9]*(\d[\d,]+)원')
-        # 또는 상품 카드 내 가격
-        card_pat  = re.compile(r'buy.now.price[^>]*>[^<]*(\d[\d,]+)원', re.IGNORECASE)
-
-        m = price_pat.search(html) or card_pat.search(html)
-        if m:
-            return f"₩{m.group(1)}"
-
-        # 대안: 첫 번째 상품 가격 추출
-        general = re.findall(r'([\d]{2,3},[\d]{3})원', html)
-        if general:
-            return f"₩{general[0]}"
-
-        return None
-    except Exception as e:
-        return None
-
-
-def scrape_kream_prices(new_items):
-    """새로 등장한 상품들만 크림 가격 조회"""
-    if not new_items:
-        return {}
-
-    print(f"[KREAM] {len(new_items)}개 새 상품 가격 조회...")
-    prices = {}
-    try:
-        from selenium import webdriver
-        from selenium.webdriver.chrome.options import Options
-        import urllib.parse as urllib_parse
-
-        opts = Options()
-        opts.add_argument("--headless")
-        opts.add_argument("--no-sandbox")
-        opts.add_argument("--disable-dev-shm-usage")
-        opts.add_argument("--disable-gpu")
-        opts.add_argument("--window-size=1280,800")
-        opts.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36")
-
-        driver = webdriver.Chrome(options=opts)
-
-        for item in new_items:
-            key = f"{item['source']}:{item['link'].rstrip('/').split('/')[-1].split('?')[-1].replace('.html','').replace('.htm','')}"
-            price = get_kream_price(driver, item['name'], item_info=item)
-            if price:
-                prices[key] = price
-                print(f"  ✅ {item['name'][:30]} → {price}")
-            else:
-                print(f"  ❌ {item['name'][:30]} → 없음")
-
-        driver.quit()
-    except Exception as e:
-        print(f"  [WARN] KREAM Selenium 실패: {e}")
-
-    print(f"  → {len(prices)}개 가격 확인")
-    return prices
-
-
 def scrape_chromehearts():
     print("[Chrome Hearts] scraping...")
     # 스카프 카테고리별 개별 상품 페이지 목록
@@ -710,7 +591,6 @@ button:hover,button.active{border-color:#f0ede8;color:#f0ede8}
 .cf{display:flex;justify-content:space-between;align-items:center;flex-shrink:0;padding-top:2px}
 .cp{font-size:8.5px;font-weight:500;color:#f0ede8}
 .db{font-size:7.5px;color:#555}
-.kp{font-size:8px;color:#e2c97e;padding:2px 4px 3px;border-top:1px solid #222;letter-spacing:.3px}
 .empty{font-size:9px;color:#333;text-align:center;padding:10px 2px}
 .notice{padding:12px 16px;font-size:10px;color:#555;line-height:1.8;border-top:1px solid #2a2a2a}
 footer{padding:10px 16px;border-top:1px solid #2a2a2a;font-size:10px;color:#555;text-align:center;letter-spacing:1px}
@@ -738,7 +618,6 @@ def card_html(item):
         f'<div class="cb2"><p class="cn">{item["name"]}</p>'
         f'<div class="cf"><span class="cp">{item["price"]}</span>'
         f'<span class="db">{item["date_label"]}</span></div>'
-        + (f'<div class="kp">KREAM {item["kream_price"]}</div>' if item.get("kream_price") else "")
         + f'</div></a>'
     )
 
@@ -834,41 +713,14 @@ if __name__ == "__main__":
     save_date_cache(cache)
 
 
-    # NEW 상품 또는 크림 가격 미캐시 상품 조회
-    try:
-        import json as _json
-        with open("docs/kream_cache.json", "r", encoding="utf-8") as _f:
-            kream_cache = _json.load(_f)
-    except:
-        kream_cache = {}
-    KREAM_SOURCES = {"KAPITAL 공홈", "S.T.C", "SPACE MOO"}
-    new_items = [
-        i for i in all_items
-        if i["source"] in KREAM_SOURCES
-        and f"{i['source']}:{i['link'].rstrip('/').split('/')[-1].split('?')[-1]}" not in kream_cache
-    ][:15]
-    kream_prices = scrape_kream_prices(new_items)
-
-    kream_cache.update(kream_prices)
-
-    with open("docs/kream_cache.json", "w", encoding="utf-8") as f:
-        with open("docs/kream_cache.json", "w", encoding="utf-8") as _fw:
-            _json.dump(kream_cache, _fw, ensure_ascii=False, indent=2)
-    # 전체 상품에 크림 가격 적용
-    for item in all_items:
-        item_id = item["link"].rstrip("/").split("/")[-1].split("?")[-1].replace(".html","").replace(".htm","")
-        key = f"{item['source']}:{item_id}"
-        if key in kream_cache:
-            item["kream_price"] = kream_cache[key]
-
     # 상품 키 생성 및 NEW 마킹
     current_keys = set()
     for item in all_items:
         item_id = item["link"].rstrip("/").split("/")[-1].split("?")[-1].replace(".html","").replace(".htm","")
         key = f"{item['source']}:{item_id}"
         current_keys.add(key)
-        # 이전에 없던 상품이면 NEW 마킹
-        item["is_new"] = (key not in prev_items) and bool(prev_items)
+        # 이전에 없던 상품이면 NEW 마킹 (날짜 캐시에도 없어야 진짜 신규)
+        item["is_new"] = (key not in prev_items) and bool(prev_items) and (item["date"] == today_str)
 
     # 현재 상품 목록 저장 (다음 실행 비교용)
     save_prev_items(current_keys)
