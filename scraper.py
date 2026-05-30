@@ -728,13 +728,8 @@ if __name__ == "__main__":
     # 현재 상품 목록 저장 (다음 실행 비교용)
     save_prev_items(current_keys)
 
-    # 120일 이내 필터 + 최신순 정렬
-    today = datetime.now(KST)
-    cutoff = today - timedelta(days=120)
-    cutoff_int = int(cutoff.strftime("%Y%m%d"))
-
-    items = [i for i in all_items if int(i["date"]) >= cutoff_int]
-    items.sort(key=lambda x: int(x["date"]), reverse=True)
+    # 최신순 정렬 (날짜 필터 없음 - 각 사이트 1페이지 전체)
+    items = sorted(all_items, key=lambda x: int(x["date"]), reverse=True)
     # 사이트별 그룹핑 후 정렬
     from collections import defaultdict
     site_groups = defaultdict(list)
@@ -746,7 +741,7 @@ if __name__ == "__main__":
         items.extend(site_groups[src])
     items.sort(key=lambda x: int(x["date"]), reverse=True)
 
-    print(f"  필터 후: {len(items)}개 (기준일: {cutoff.strftime('%Y.%m.%d')} 이후, 제한 없음)")
+    print(f"  완료: {len(items)}개 (각 사이트 1페이지)")
     with open("docs/index.html","w",encoding="utf-8") as f:
         f.write(build_html(items))
     print(f"\n✅ 완료 ({len(items)}개)")
