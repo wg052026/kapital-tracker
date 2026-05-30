@@ -288,8 +288,8 @@ def get_kream_price(driver, item_name, wait_sec=4):
         import time
         # 상품명 앞 핵심 키워드만 추출 (30자 이내)
         keyword = item_name[:40].strip()
-        url = f"https://kream.co.kr/search?tab=products&keyword={urllib.parse.quote(keyword)}"
-        driver.get(url)
+        import urllib.parse as _up
+        url = f"https://kream.co.kr/search?tab=products&keyword={_up.quote(keyword)}"
         time.sleep(wait_sec)
 
         html = driver.page_source
@@ -772,23 +772,26 @@ if __name__ == "__main__":
     # 캐시 저장
     save_date_cache(cache)
 
-    # NEW 상품만 크림 가격 조회
-    new_items = [i for i in all_items if i.get("is_new", False)]
-    kream_prices = scrape_kream_prices(new_items)
 
-    # 크림 가격 캐시 로드 및 업데이트
+    # NEW 상품 또는 크림 가격 미캐시 상품 조회
     try:
-        import json
-        with open("docs/kream_cache.json", "r", encoding="utf-8") as f:
-            kream_cache = json.load(f)
+        import json as _json
+        with open("docs/kream_cache.json", "r", encoding="utf-8") as _f:
+            kream_cache = _json.load(_f)
     except:
         kream_cache = {}
+    new_items = [
+        i for i in all_items
+        if i.get("is_new", False) or
+        f"{i['source']}:{i['link'].rstrip('/').split('/')[-1].split('?')[-1]}" not in kream_cache
+    ][:20]  # 최대 20개만 (시간 제한)
+    kream_prices = scrape_kream_prices(new_items)
 
     kream_cache.update(kream_prices)
 
     with open("docs/kream_cache.json", "w", encoding="utf-8") as f:
-        json.dump(kream_cache, f, ensure_ascii=False, indent=2)
-
+        with open("docs/kream_cache.json", "w", encoding="utf-8") as _fw:
+            _json.dump(kream_cache, _fw, ensure_ascii=False, indent=2)
     # 전체 상품에 크림 가격 적용
     for item in all_items:
         item_id = item["link"].rstrip("/").split("/")[-1].split("?")[-1]
