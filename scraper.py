@@ -441,15 +441,11 @@ def scrape_kapital_home():
 
 def card_html(i):
     oe = "this.style.display='none'"
-    is_new = i.get("is_new", False)
-    new_attr = ' data-new="1"' if is_new else ''
-    new_badge = '<span class="nb">NEW</span>' if is_new else ''
     return (
-        f'<a class="card" data-source="{i["source"]}" data-date="{i["date"]}"{new_attr} '
+        f'<a class="card" data-source="{i["source"]}" data-date="{i["date"]}" '
         f'href="{i["link"]}" target="_blank">'
         f'<div class="ci"><img src="{i["img"]}" onerror="{oe}">'
         f'<div class="sd" style="background:{i["color"]}"></div>'
-        f'{new_badge}'
         f'</div>'
         f'<div class="cb2">'
         f'<span class="st" style="color:{i["color"]}">{i["source"]}</span>'
@@ -491,7 +487,7 @@ button:hover,button.active{border-color:#f0ede8;color:#f0ede8}
 .notice{padding:14px 24px;font-size:11px;color:#888;line-height:1.8;border-top:1px solid #2a2a2a}
 footer{padding:14px 24px;border-top:1px solid #2a2a2a;font-size:11px;color:#888;text-align:center;letter-spacing:1px}
 .hidden{display:none!important}
-.nb{position:absolute;top:8px;right:8px;background:#ff3b3b;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:2px;letter-spacing:1px;z-index:2}
+
 </style>"""
 
 JS = """<script>
@@ -540,25 +536,9 @@ function filtDays(days){
   applyFilter();
 }
 
-function filtNew(){
-  curMode='new';
-  document.querySelectorAll('button[data-source],button[data-new]').forEach(function(b){b.classList.remove('active')});
-  document.querySelector('button[data-new="new"]').classList.add('active');
-  var n=0;
-  cs.forEach(function(c){
-    var show=c.dataset.new==='1';
-    c.classList.toggle('hidden',!show);
-    if(show)n++;
-  });
-  document.getElementById('cnt').textContent=n;
-  if(n===0){
-    document.getElementById('cnt').textContent='0 (아직 변경 없음)';
-  }
-}
-
-var curMode='new';
-// 초기: 신규입고 표시
-filtNew();
+var curMode='normal';
+// 초기: 1일 필터 적용
+filtDays(1);
 </script>"""
 
 def build_html(items):
@@ -588,12 +568,8 @@ def build_html(items):
   <div class="ld"><div class="dot" style="background:#ff6b6b"></div>KAPITAL 공홈</div>
 </div>
 <div class="filters">
-  <span class="fl">NEW</span>
-  <button class="active" data-new="new" onclick="filtNew()">🆕 신규입고</button>
-</div>
-<div class="filters">
   <span class="fl">SHOP</span>
-  <button data-source="ALL" onclick="filt('ALL')">ALL</button>
+  <button class="active" data-source="ALL" onclick="filt('ALL')">ALL</button>
   <button data-source="BLUE NEON" onclick="filt('BLUE NEON')">BLUE NEON</button>
   <button data-source="KEROUAC" onclick="filt('KEROUAC')">KEROUAC</button>
   <button data-source="TAKE FIVE" onclick="filt('TAKE FIVE')">TAKE FIVE</button>
