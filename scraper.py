@@ -282,14 +282,64 @@ def scrape_stc():
     return items
 
 
-def get_kream_price(driver, item_name, wait_sec=4):
+def get_kream_price(driver, item_name, item_info=None, wait_sec=5):
     """Selenium으로 크림에서 상품 검색 후 즉시구매가 반환"""
     try:
         import time
         # 상품명 앞 핵심 키워드만 추출 (30자 이내)
-        keyword = item_name[:40].strip()
+        # 품번 기반 검색만 수행 - 품번 없으면 스킵
+        source = (item_info or {}).get("source", "")
+        link   = (item_info or {}).get("link", "")
+        code = None
+
+        if source == "KAPITAL 공홈":
+            # URL에서 직접 추출
+            m = re.search(r'/item/([A-Z][A-Z0-9\-]+)\.html', link)
+            if m: code = m.group(1)
+
+        elif source == "S.T.C":
+            # 상품 페이지에서 품번 추출
+            raw = fetch_raw(link)
+            if raw:
+                page = raw.decode("utf-8", errors="replace")
+                m = re.search(r'品番</p>.*?<span[^>]*>([A-Z][A-Z0-9\-/]+)</span>', page, re.DOTALL)
+                if m: code = m.group(1)
+                else:
+                    # URL에서 직접
+                    m2 = re.search(r'/item/([A-Z][A-Z0-9\-]+)/', link)
+                    if m2: code = m2.group(1)
+
+        elif source == "KEROUAC":
+            # 상품 페이지에서 品番 추출
+            raw = fetch_raw(link)
+            if raw:
+                page = raw.decode("utf-8", errors="replace")
+                m = re.search(r'品番[：:\s]+(\S+)', page)
+                if m: code = m.group(1).strip()
+
+        elif source == "SPACE MOO":
+            # 상품명이나 페이지에서 품번 추출 (EK-1399XB 형태)
+            name = (item_info or {}).get("name", "")
+            m = re.search(r'\(([A-Z]{2}-\d{4}[A-Z]{0,3})\)', name)
+            if m:
+                code = m.group(1)
+            else:
+                raw = fetch_raw(link)
+                if raw:
+                    page = raw.decode("utf-8", errors="replace")
+                    m = re.search(r'\(([A-Z]{2}-\d{4}[A-Z]{0,3})\)', page)
+                    if m: code = m.group(1)
+
+        # 품번 없으면 스킵
+        if not code:
+            return None
+
+        keyword = f"KAPITAL {code}"
+        import urllib.parse as _up
+        keyword = f"KAPITAL {code}"
         import urllib.parse as _up
         url = f"https://kream.co.kr/search?tab=products&keyword={_up.quote(keyword)}"
+        driver.get(url)
         time.sleep(wait_sec)
 
         html = driver.page_source
@@ -336,7 +386,7 @@ def scrape_kream_prices(new_items):
 
         for item in new_items:
             key = f"{item['source']}:{item['link'].rstrip('/').split('/')[-1].split('?')[-1]}"
-            price = get_kream_price(driver, item['name'])
+            price = get_kream_price(driver, item['name'], item_info=item)
             if price:
                 prices[key] = price
                 print(f"  ✅ {item['name'][:30]} → {price}")
@@ -541,6 +591,7 @@ def scrape_kapital_home():
         link_sample = re.findall(r'href="(https://www\.kapital-webshop\.jp/item/[^"]+)"', html)[:3]
         print(f"  [debug] item links sample: {link_sample}")
 
+        items = []
         seen  = set()
         for block in block_pat.finditer(html):
             b  = block.group(1)
