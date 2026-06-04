@@ -8,11 +8,17 @@ KST = timezone(timedelta(hours=9))
 NOW = datetime.now(KST).strftime("%Y.%m.%d %H:%M KST")
 SITE_URL = "https://wg052026.github.io/kapital-tracker/"
 
+# 메일 알림을 받을 사이트만 지정 (여기 목록만 발송됨)
+ALERT_SITES = {"KAPITAL 공홈", "KEROUAC", "TAKE FIVE"}
+
 try:
     with open("docs/new_items.json", "r", encoding="utf-8") as f:
         items = json.load(f)
 except Exception:
     items = []
+
+# 지정한 사이트의 신상품만 남김
+items = [it for it in items if it["source"] in ALERT_SITES]
 
 # GitHub Actions 출력: NEW 유무
 out = os.environ.get("GITHUB_OUTPUT")
