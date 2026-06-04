@@ -323,12 +323,16 @@ def scrape_stc():
 
 def scrape_chromehearts():
     print("[Chrome Hearts] scraping...")
-    # 스카프 카테고리별 개별 상품 페이지 목록
+    # 실제 상품 페이지 URL 패턴: /scarf/<상품슬러그>/<품번>.html
+    # (카테고리/목록 페이지: /scarf/<카테고리>.html → 제외)
+    PRODUCT_URL = re.compile(
+        r'^https://www\.chromehearts\.com/scarf/[^/"?]+/[A-Za-z0-9]+\.html$'
+    )
+
     scarf_urls = [
         "https://www.chromehearts.com/scarf/cemetery-cross-silk-scarf/196366O44XXX060.html",
-        "https://www.chromehearts.com/scarf/fu-scarf/075372A8SXXX008.html",
     ]
-    # 추가 카테고리 탐색 (scarf 목록 페이지)
+    # 스카프 목록 페이지에서 추가 상품 링크 탐색
     raw = fetch_raw("https://www.chromehearts.com/scarf")
     if raw:
         html = raw.decode("utf-8", errors="replace")
@@ -336,7 +340,8 @@ def scrape_chromehearts():
             r'href="(https://www\.chromehearts\.com/scarf/[^"?]+\.html)"', html
         )
         for l in found_links:
-            if l not in scarf_urls:
+            # 상품 URL 패턴에 맞는 것만 (카테고리 페이지 제외)
+            if PRODUCT_URL.match(l) and l not in scarf_urls:
                 scarf_urls.append(l)
 
     items = []
@@ -346,8 +351,11 @@ def scrape_chromehearts():
     for url in scarf_urls:
         if url in seen: continue
         seen.add(url)
+        # 안전장치: 상품 URL이 아니면 건너뜀
+        if not PRODUCT_URL.match(url):
+            continue
         raw = fetch_raw(url)
-        if not raw: continue
+        if not raw: continue  # 404 등 → 조용히 스킵 (전체는 계속)
         html = raw.decode("utf-8", errors="replace")
 
         name_m  = re.search(r'data-name="([^"]+)"', html)
@@ -357,7 +365,7 @@ def scrape_chromehearts():
         sold    = bool(re.search(r'class="[^"]*sold-out[^"]*"', html))
 
         if not name_m: continue
-        pid = pid_m.group(1) if pid_m else url.split("/")[-1]
+        pid = pid_m.group(1) if pid_m else url.split("/")[-1].replace(".html", "")
         if pid in seen: continue
         seen.add(pid)
 
@@ -516,22 +524,6 @@ def scrape_selenium_sites():
 
     return results["SE7EN"], results["KAPITAL 공홈"]
 
-
-def card_html(i):
-    oe = "this.style.display='none'"
-    return (
-        f'<a class="card" data-source="{i["source"]}" data-date="{i["date"]}" '
-        f'href="{i["link"]}" target="_blank">'
-        f'<div class="ci"><img src="{i["img"]}" onerror="{oe}">'
-        f'<div class="sd" style="background:{i["color"]}"></div>'
-        f'</div>'
-        f'<div class="cb2">'
-        f'<span class="st" style="color:{i["color"]}">{i["source"]}</span>'
-        f'<p class="cn">{i["name"]}</p>'
-        f'<div class="cf"><span class="cp">{i["price"]}</span>'
-        f'<span class="db">{i["date_label"]}</span></div>'
-        f'</div></a>'
-    )
 
 SITE_ORDER = [
     "KAPITAL 공홈","KEROUAC","TAKE FIVE","BLUE NEON",
@@ -719,12 +711,27 @@ if __name__ == "__main__":
 
     # 상품 키 생성 및 NEW 마킹
     current_keys = set()
+    new_items = []
     for item in all_items:
         item_id = item["link"].rstrip("/").split("/")[-1].split("?")[-1].replace(".html","").replace(".htm","")
         key = f"{item['source']}:{item_id}"
         current_keys.add(key)
         # 이전에 없던 상품이면 NEW 마킹 (날짜 캐시에도 없어야 진짜 신규)
         item["is_new"] = (key not in prev_items) and bool(prev_items) and (item["date"] == today_str)
+        if item["is_new"]:
+            new_items.append({
+                "source": item["source"],
+                "name": item["name"],
+                "price": item.get("price", "-"),
+                "link": item["link"],
+                "img": item.get("img", ""),
+            })
+
+    # NEW 상품 목록 저장 (메일 발송용). 항상 덮어쓰기 → 없으면 빈 배열
+    import json as _jn
+    with open("docs/new_items.json", "w", encoding="utf-8") as _f:
+        _jn.dump(new_items, _f, ensure_ascii=False, indent=2)
+    print(f"  NEW 상품: {len(new_items)}개")
 
     # 현재 상품 목록 저장 (다음 실행 비교용)
     save_prev_items(current_keys)
