@@ -327,66 +327,72 @@ def scrape_stc():
 
 
 def scrape_chromehearts():
-    print("[Chrome Hearts] scraping...")
-    # 실제 상품 페이지 URL 패턴: /scarf/<상품슬러그>/<품번>.html
-    # (카테고리/목록 페이지: /scarf/<카테고리>.html → 제외)
-    PRODUCT_URL = re.compile(
-        r'^https://www\.chromehearts\.com/scarf/[^/"?]+/[A-Za-z0-9]+\.html$'
-    )
+    """Chrome Hearts: 상품이 아니라 '카테고리 출현'을 추적한다.
+    평소엔 없던 카테고리가 신상품과 함께 새로 생기므로,
+    현재 카테고리 목록을 캐시와 비교해 새로 생긴 카테고리만 NEW로 반환한다."""
+    print("[Chrome Hearts] scraping categories...")
+    import json as _jc, os as _osc
 
-    scarf_urls = [
-        "https://www.chromehearts.com/scarf/cemetery-cross-silk-scarf/196366O44XXX060.html",
-        "https://www.chromehearts.com/scarf/math-plus-scarf/196365C1KXXX059.html",
-    ]
-    # 스카프 목록 페이지에서 추가 상품 링크 탐색
-    raw = fetch_raw("https://www.chromehearts.com/scarf")
-    if raw:
-        html = raw.decode("utf-8", errors="replace")
-        found_links = re.findall(
-            r'href="(https://www\.chromehearts\.com/scarf/[^"?]+\.html)"', html
-        )
-        for l in found_links:
-            # 상품 URL 패턴에 맞는 것만 (카테고리 페이지 제외)
-            if PRODUCT_URL.match(l) and l not in scarf_urls:
-                scarf_urls.append(l)
-
-    items = []
-    seen  = set()
+    BASE = "https://www.chromehearts.com"
     today = datetime.now(KST).strftime("%Y%m%d")
 
-    for url in scarf_urls:
-        if url in seen: continue
-        seen.add(url)
-        # 안전장치: 상품 URL이 아니면 건너뜀
-        if not PRODUCT_URL.match(url):
-            continue
-        raw = fetch_raw(url)
-        if not raw: continue  # 404 등 → 조용히 스킵 (전체는 계속)
-        html = raw.decode("utf-8", errors="replace")
+    # 메인 페이지에서 메뉴(카테고리 목록) 긁기
+    raw = fetch_raw(BASE + "/")
+    if not raw:
+        print("  [WARN] 메인 페이지 응답 없음 (차단 가능성) → 0 items")
+        return []
+    html = raw.decode("utf-8", errors="replace")
 
-        name_m  = re.search(r'data-name="([^"]+)"', html)
-        price_m = re.search(r'data-price="([\d.]+)"', html)
-        pid_m   = re.search(r'data-pid="([^"]+)"', html)
-        img_m   = re.search(r'srcset="(https://www\.chromehearts\.com/dw/image/[^"]+)"', html)
-        sold    = bool(re.search(r'class="[^"]*sold-out[^"]*"', html))
+    # 카테고리 링크: class="b-dropdown-menu_item" 이고 href가 실제 경로(/...)
+    cat_pat = re.compile(
+        r'<a\s+href="(/[^"]+)"\s+id="([^"]+)"\s+class="b-dropdown-menu_item[^"]*"[^>]*>(.*?)</a>',
+        re.DOTALL
+    )
+    current = {}
+    for m in cat_pat.finditer(html):
+        href = m.group(1).strip()
+        label = re.sub(r'<[^>]+>', '', m.group(3)).strip().replace('&amp;', '&')
+        if href.startswith("/") and href not in current:
+            current[href] = label
+    print(f"  현재 카테고리 {len(current)}개: {', '.join(current.keys())}")
 
-        if not name_m: continue
-        pid = pid_m.group(1) if pid_m else url.split("/")[-1].replace(".html", "")
-        if pid in seen: continue
-        seen.add(pid)
+    # 카테고리 캐시 로드
+    _osc.makedirs("docs", exist_ok=True)
+    try:
+        with open("docs/ch_categories.json", "r", encoding="utf-8") as _f:
+            known = _jc.load(_f)
+    except Exception:
+        known = {}
 
-        items.append({
-            "source": "CHROME HEARTS", "color": "#e2c97e",
-            "name":  name_m.group(1),
-            "price": f"${int(float(price_m.group(1))):,}" if price_m else "-",
-            "img":   img_m.group(1).split("?")[0] + "?sw=400&sh=500" if img_m else "",
-            "link":  url,
-            "date":  today,
-            "date_label": "신착",
-            "sold_out": sold,
-        })
+    # 첫 실행(캐시 비어있음)이면 기준만 저장하고 NEW 없음 처리 → 메일 폭탄 방지
+    first_run = not known
 
-    print(f"  → {len(items)} items")
+    items = []
+    for href, label in current.items():
+        if href not in known:
+            known[href] = {"label": label, "first_seen": today}
+            if not first_run:
+                # 진짜 새로 생긴 카테고리 → NEW (메인 로직 거치지 않게 직접 마킹)
+                items.append({
+                    "source": "CHROME HEARTS", "color": "#e2c97e",
+                    "name": f"새 카테고리: {label}",
+                    "price": "-",
+                    "img": "",
+                    "link": BASE + href,
+                    "date": today,
+                    "date_label": "신규 카테고리",
+                    "is_new": True,
+                    "_ch_category": True,
+                })
+
+    # 캐시 저장 (사라진 카테고리도 유지 → 다시 생겨도 중복 알림 안 함)
+    with open("docs/ch_categories.json", "w", encoding="utf-8") as _f:
+        _jc.dump(known, _f, ensure_ascii=False, indent=2)
+
+    if first_run:
+        print(f"  첫 실행 → 카테고리 {len(current)}개 기준 저장, NEW 0개")
+    else:
+        print(f"  → 새 카테고리 {len(items)}개")
     return items
 
 
@@ -695,6 +701,8 @@ if __name__ == "__main__":
     # 모든 상품에 대해 캐시 기반 날짜 고정
     # (한번 기록된 날짜는 절대 바뀌지 않음)
     for item in all_items:
+        if item.get("_ch_category"):
+            continue  # 카테고리 item은 date_cache 대상 아님
         item_id = item["link"].rstrip("/").split("/")[-1].split("?")[-1].replace(".html","").replace(".htm","")
         key = f"{item['source']}:{item_id}"
         if key not in cache:
@@ -722,8 +730,12 @@ if __name__ == "__main__":
         item_id = item["link"].rstrip("/").split("/")[-1].split("?")[-1].replace(".html","").replace(".htm","")
         key = f"{item['source']}:{item_id}"
         current_keys.add(key)
-        # 이전에 없던 상품이면 NEW 마킹 (날짜 캐시에도 없어야 진짜 신규)
-        item["is_new"] = (key not in prev_items) and bool(prev_items) and (item["date"] == today_str)
+        # Chrome Hearts 카테고리 item은 자체 판정(is_new)을 그대로 사용
+        if item.get("_ch_category"):
+            pass  # is_new 이미 함수에서 결정됨
+        else:
+            # 이전에 없던 상품이면 NEW 마킹 (날짜 캐시에도 없어야 진짜 신규)
+            item["is_new"] = (key not in prev_items) and bool(prev_items) and (item["date"] == today_str)
         if item["is_new"]:
             new_items.append({
                 "source": item["source"],
