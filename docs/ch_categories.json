@@ -1,0 +1,22 @@
+{
+  "/baccarat": {
+    "label": "Baccarat",
+    "first_seen": "20260606"
+  },
+  "/scents": {
+    "label": "Scents",
+    "first_seen": "20260606"
+  },
+  "/boxers-leggings": {
+    "label": "BOXERS & LEGGINGS",
+    "first_seen": "20260606"
+  },
+  "/intimates": {
+    "label": "INTIMATES",
+    "first_seen": "20260606"
+  },
+  "/socks": {
+    "label": "Socks",
+    "first_seen": "20260606"
+  }
+}
