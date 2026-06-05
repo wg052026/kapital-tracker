@@ -9,7 +9,7 @@ NOW = datetime.now(KST).strftime("%Y.%m.%d %H:%M KST")
 SITE_URL = "https://wg052026.github.io/kapital-tracker/"
 
 # 메일 알림을 받을 사이트만 지정 (여기 목록만 발송됨)
-ALERT_SITES = {"KAPITAL 공홈", "KEROUAC", "TAKE FIVE"}
+ALERT_SITES = {"KAPITAL 공홈", "KEROUAC", "TAKE FIVE", "CHROME HEARTS"}
 
 try:
     with open("docs/new_items.json", "r", encoding="utf-8") as f:

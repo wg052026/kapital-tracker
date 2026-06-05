@@ -69,8 +69,13 @@ def extract_item_code(source, link, name="", item=None):
         m = _re.search(r'\(([A-Z]{2}-\d{4}[A-Z]{0,3})\)', name)
         return m.group(1) if m else None
     elif source == "KEROUAC":
-        # item_code 필드에 미리 저장된 품번 사용
-        return item.get("item_code") if hasattr(item, "get") else None
+        # item_code 필드에 미리 저장된 품번 사용, 없으면 link의 item_id로 폴백
+        if hasattr(item, "get"):
+            code = item.get("item_code")
+            if code:
+                return code
+        m = _re.search(r'/view/item/(\d+)', link)
+        return m.group(1) if m else None
     return None
 
 
@@ -195,9 +200,9 @@ def scrape_kerouac():
 
     item_pat = re.compile(
         r'href="/view/item/(\d+)\?category_page_id=ct45"[^>]*>.*?'
-        r'src="(https://makeshop-multi-images\.akamaized\.net/kerouac2021/itemimages/[^"]+)".*?'
-        r'class="itemName[^"]*"[^>]*>(.*?)</[^>]+>.*?'
-        r'([\d,]+)円',
+        r'<img\s+src="(https://makeshop-multi-images\.akamaized\.net/kerouac2021/itemimages/[^"]+)".*?'
+        r'<p class="itemName">(.*?)</p>.*?'
+        r'<p class="itemPrice">([\d,]+)円',
         re.DOTALL
     )
 
@@ -331,6 +336,7 @@ def scrape_chromehearts():
 
     scarf_urls = [
         "https://www.chromehearts.com/scarf/cemetery-cross-silk-scarf/196366O44XXX060.html",
+        "https://www.chromehearts.com/scarf/math-plus-scarf/196365C1KXXX059.html",
     ]
     # 스카프 목록 페이지에서 추가 상품 링크 탐색
     raw = fetch_raw("https://www.chromehearts.com/scarf")
