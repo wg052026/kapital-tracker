@@ -20,6 +20,17 @@ except Exception:
 # 지정한 사이트의 신상품만 남김
 items = [it for it in items if it["source"] in ALERT_SITES]
 
+# 테스트 모드: TEST_EMAIL=1 이면 가짜 상품을 넣어 무조건 메일 발송 (작동 확인용)
+if os.environ.get("TEST_EMAIL") == "1":
+    items = [{
+        "source": "KEROUAC",
+        "name": "[테스트] 메일 발송 확인용 상품입니다",
+        "price": "¥00,000",
+        "link": SITE_URL,
+        "img": "",
+    }] + items
+    print("테스트 모드: 가짜 상품으로 메일 강제 발송")
+
 # GitHub Actions 출력: NEW 유무
 out = os.environ.get("GITHUB_OUTPUT")
 if out:
