@@ -25,6 +25,11 @@ on:
     - cron: '0 14 * * *'   # 23:00 KST
     - cron: '0 15 * * *'   # 24:00 (00:00) KST
   workflow_dispatch:
+    inputs:
+      test_email:
+        description: '테스트 메일 보내기 (체크하면 신상품 없어도 메일 발송)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -74,6 +79,8 @@ jobs:
 
       - name: 메일 본문 생성 (NEW 상품 확인)
         id: email
+        env:
+          TEST_EMAIL: ${{ github.event.inputs.test_email == 'true' && '1' || '0' }}
         run: python build_email.py
 
       - name: 신상품 메일 발송
@@ -81,12 +88,12 @@ jobs:
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.naver.com
-          server_port: 465
-          secure: true
-          username: ${{ secrets.NAVER_USER }}
+          server_port: 587
+          secure: false
+          username: wkele2k@naver.com
           password: ${{ secrets.NAVER_PASS }}
-          from: KAPITAL Tracker <${{ secrets.NAVER_USER }}@naver.com>
-          to: ${{ secrets.NAVER_USER }}@naver.com
+          from: KAPITAL Tracker <wkele2k@naver.com>
+          to: wkele2k@naver.com
           subject: "[KAPITAL] 신상품 ${{ steps.email.outputs.count }}개 입고"
           html_body: file://email_body.html
           convert_markdown: false
@@ -95,7 +102,7 @@ jobs:
         run: |
           git config user.name "kapital-bot"
           git config user.email "bot@kapital-tracker"
-          git add docs/index.html docs/date_cache.json docs/prev_items.json docs/tf_price_cache.json docs/kerouac_code_cache.json docs/new_items.json
+          git add docs/index.html docs/date_cache.json docs/prev_items.json docs/tf_price_cache.json docs/kerouac_code_cache.json docs/new_items.json docs/ch_categories.json
           git diff --cached --quiet && echo "변경 없음" && exit 0
           git commit -m "auto update $(date '+%Y-%m-%d %H:%M KST' -d '+9 hours')"
           git fetch origin main
