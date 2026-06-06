@@ -90,10 +90,10 @@ jobs:
           server_address: smtp.naver.com
           server_port: 465
           secure: true
-          username: wg052026@naver.com
+          username: wkele2k@naver.com
           password: ${{ secrets.NAVER_PASS }}
-          from: KAPITAL Tracker <wg052026@naver.com>
-          to: wg052026@naver.com
+          from: KAPITAL Tracker <wkele2k@naver.com>
+          to: wkele2k@naver.com
           subject: "[KAPITAL] 신상품 ${{ steps.email.outputs.count }}개 입고"
           html_body: file://email_body.html
           convert_markdown: false
