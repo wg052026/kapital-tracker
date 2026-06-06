@@ -691,6 +691,11 @@ if __name__ == "__main__":
 
     # 날짜 캐시 + 이전 상품 목록 로드
     cache = load_date_cache()
+    # KEROUAC 깨진 공용 키 정리: 과거 모든 상품이 'category_page_id=ct45' 한 키를
+    # 공유해 옛 날짜를 잘못 표시하던 버그. 제거하면 상품별 키로 오늘 날짜 재기록됨.
+    if "KEROUAC:category_page_id=ct45" in cache:
+        del cache["KEROUAC:category_page_id=ct45"]
+        print("  [정리] 깨진 KEROUAC 캐시 키 제거")
     prev_items = load_prev_items()
 
     se7en_items, kapital_items = scrape_selenium_sites()
@@ -736,12 +741,20 @@ if __name__ == "__main__":
     # 상품 키 생성 및 NEW 마킹
     current_keys = set()
     new_items = []
+    # KEROUAC 키 방식이 바뀐 첫 회차 감지: prev_items에 새 방식 KEROUAC 키(KEROUAC:숫자)가
+    # 하나도 없으면, 이번엔 KEROUAC를 NEW에서 제외하고 기준만 갱신(메일 폭탄 방지).
+    kero_new_scheme_in_prev = any(
+        k.startswith("KEROUAC:") and k.split(":",1)[1].isdigit() for k in prev_items
+    )
     for item in all_items:
         key = _item_key(item)
         current_keys.add(key)
         # Chrome Hearts 카테고리 item은 자체 판정(is_new)을 그대로 사용
         if item.get("_ch_category"):
             pass  # is_new 이미 함수에서 결정됨
+        elif item["source"] == "KEROUAC" and not kero_new_scheme_in_prev:
+            # 키 방식 전환 첫 회차 → 기준만 잡고 NEW 안 함
+            item["is_new"] = False
         else:
             # 직전 실행 목록(prev_items)에 없던 키면 NEW.
             # (날짜==오늘 조건 제거: 첫 등장 회차를 놓쳐도 다음 회차에 잡히도록)
