@@ -45,23 +45,29 @@ candidates = [
 ]
 
 for label, login_user in candidates:
-    print(f"\n[2] 로그인 시도 — username='{login_user}' ({label})")
-    try:
-        ctx = ssl.create_default_context()
-        with smtplib.SMTP_SSL("smtp.naver.com", 465, context=ctx, timeout=20) as server:
-            # debuglevel은 비밀번호가 base64로 로그에 찍힐 수 있어 끔
+    for port, mode in [(587, "STARTTLS"), (465, "SSL")]:
+        print(f"\n[2] 로그인 시도 — username='{login_user}' ({label}) / 포트 {port} ({mode})")
+        try:
+            ctx = ssl.create_default_context()
+            if port == 465:
+                server = smtplib.SMTP_SSL("smtp.naver.com", 465, context=ctx, timeout=20)
+            else:
+                server = smtplib.SMTP("smtp.naver.com", 587, timeout=20)
+                server.ehlo()
+                server.starttls(context=ctx)
+                server.ehlo()
             print("  → 연결 성공, 로그인 시도...")
             server.login(login_user, pw)
-            print(f"  ✓✓✓ 로그인 성공! username='{login_user}' ({label}) 이게 정답입니다.")
+            print(f"  ✓✓✓ 로그인 성공! username='{login_user}' / 포트 {port} ({mode}) 이게 정답입니다.")
             server.quit()
             print("\n" + "=" * 60)
-            print(f"결론: username 으로 '{login_user}' 를 쓰면 됩니다.")
+            print(f"결론: username='{login_user}', 포트={port}({mode}) 로 설정하세요.")
             print("=" * 60)
             sys.exit(0)
-    except smtplib.SMTPAuthenticationError as e:
-        print(f"  ✗ 인증 실패 (535 계열): {e.smtp_code} / {e.smtp_error}")
-    except Exception as e:
-        print(f"  ✗ 기타 오류: {type(e).__name__}: {e}")
+        except smtplib.SMTPAuthenticationError as e:
+            print(f"  ✗ 인증 실패 (535 계열): {e.smtp_code} / {e.smtp_error}")
+        except Exception as e:
+            print(f"  ✗ 기타 오류: {type(e).__name__}: {e}")
 
 print("\n" + "=" * 60)
 print("두 방식(전체주소/아이디만) 모두 인증 실패.")
