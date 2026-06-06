@@ -25,6 +25,11 @@ on:
     - cron: '0 14 * * *'   # 23:00 KST
     - cron: '0 15 * * *'   # 24:00 (00:00) KST
   workflow_dispatch:
+    inputs:
+      test_email:
+        description: '테스트 메일 보내기 (체크하면 신상품 없어도 메일 발송)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -74,6 +79,8 @@ jobs:
 
       - name: 메일 본문 생성 (NEW 상품 확인)
         id: email
+        env:
+          TEST_EMAIL: ${{ github.event.inputs.test_email == 'true' && '1' || '0' }}
         run: python build_email.py
 
       - name: 신상품 메일 발송
