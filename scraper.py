@@ -700,11 +700,21 @@ if __name__ == "__main__":
     # 날짜 없는 사이트는 캐시에서 날짜 조회 (새 상품이면 오늘 날짜 기록)
     # 모든 상품에 대해 캐시 기반 날짜 고정
     # (한번 기록된 날짜는 절대 바뀌지 않음)
+    def _item_key(item):
+        """상품별 고유 키. KEROUAC는 link 끝이 ?category_page_id=ct45로 모두 같아
+        item 번호(?앞)를 써야 충돌하지 않는다. 나머지는 기존 방식 유지."""
+        link = item["link"]
+        if item["source"] == "KEROUAC":
+            mm = re.search(r'/view/item/(\d+)', link)
+            iid = mm.group(1) if mm else link
+        else:
+            iid = link.rstrip("/").split("/")[-1].split("?")[-1].replace(".html","").replace(".htm","")
+        return f"{item['source']}:{iid}"
+
     for item in all_items:
         if item.get("_ch_category"):
             continue  # 카테고리 item은 date_cache 대상 아님
-        item_id = item["link"].rstrip("/").split("/")[-1].split("?")[-1].replace(".html","").replace(".htm","")
-        key = f"{item['source']}:{item_id}"
+        key = _item_key(item)
         if key not in cache:
             # 신규 상품: 현재 item의 date를 최초 날짜로 기록
             cache[key] = item["date"]
@@ -727,15 +737,15 @@ if __name__ == "__main__":
     current_keys = set()
     new_items = []
     for item in all_items:
-        item_id = item["link"].rstrip("/").split("/")[-1].split("?")[-1].replace(".html","").replace(".htm","")
-        key = f"{item['source']}:{item_id}"
+        key = _item_key(item)
         current_keys.add(key)
         # Chrome Hearts 카테고리 item은 자체 판정(is_new)을 그대로 사용
         if item.get("_ch_category"):
             pass  # is_new 이미 함수에서 결정됨
         else:
-            # 이전에 없던 상품이면 NEW 마킹 (날짜 캐시에도 없어야 진짜 신규)
-            item["is_new"] = (key not in prev_items) and bool(prev_items) and (item["date"] == today_str)
+            # 직전 실행 목록(prev_items)에 없던 키면 NEW.
+            # (날짜==오늘 조건 제거: 첫 등장 회차를 놓쳐도 다음 회차에 잡히도록)
+            item["is_new"] = (key not in prev_items) and bool(prev_items)
         if item["is_new"]:
             new_items.append({
                 "source": item["source"],
