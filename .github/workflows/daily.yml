@@ -94,8 +94,8 @@ jobs:
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.naver.com
-          server_port: 465
-          secure: true
+          server_port: 587
+          secure: false
           username: wkele2k@naver.com
           password: ${{ secrets.NAVER_PASS }}
           from: KAPITAL Tracker <wkele2k@naver.com>
