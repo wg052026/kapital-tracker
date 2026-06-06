@@ -83,6 +83,12 @@ jobs:
           TEST_EMAIL: ${{ github.event.inputs.test_email == 'true' && '1' || '0' }}
         run: python build_email.py
 
+      - name: SMTP 진단 (임시)
+        env:
+          NAVER_USER: wkele2k@naver.com
+          NAVER_PASS: ${{ secrets.NAVER_PASS }}
+        run: python smtp_diag.py
+
       - name: 신상품 메일 발송
         if: steps.email.outputs.send == 'true'
         uses: dawidd6/action-send-mail@v3
