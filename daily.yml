@@ -3,8 +3,9 @@ name: KAPITAL Tracker - Auto Update
 on:
   schedule:
     # 모든 cron은 UTC 기준. 주석은 KST(UTC+9).
-    # ── 07:00~14:00 KST: 매시간 ──
-    - cron: '0 22 * * *'   # 07:00 KST
+    # ※ 피크 시간(새벽 3~7시, 오후 5~7시 KST)은 cron-job.org가 3분마다 단독 담당.
+    #    겹침(동시 실행 → prev_items 꼬임)을 막기 위해 그 시간대는 여기서 제외.
+    # ── 08:00~16:00 KST: 매시간 (보조) ──
     - cron: '0 23 * * *'   # 08:00 KST
     - cron: '0 0 * * *'    # 09:00 KST
     - cron: '0 1 * * *'    # 10:00 KST
@@ -12,18 +13,16 @@ on:
     - cron: '0 3 * * *'    # 12:00 KST
     - cron: '0 4 * * *'    # 13:00 KST
     - cron: '0 5 * * *'    # 14:00 KST
-    # ── 15:00~18:50 KST: 10분 간격 (피크 시간) ──
-    - cron: '0,10,20,30,40,50 6 * * *'   # 15:xx KST
-    - cron: '0,10,20,30,40,50 7 * * *'   # 16:xx KST
-    - cron: '0,10,20,30,40,50 8 * * *'   # 17:xx KST
-    - cron: '0,10,20,30,40,50 9 * * *'   # 18:xx KST
-    # ── 19:00~24:00 KST: 매시간 ──
-    - cron: '0 10 * * *'   # 19:00 KST
+    - cron: '0 6 * * *'    # 15:00 KST
+    - cron: '0 7 * * *'    # 16:00 KST
+    # ── 20:00~02:00 KST: 매시간 (보조) ──
     - cron: '0 11 * * *'   # 20:00 KST
     - cron: '0 12 * * *'   # 21:00 KST
     - cron: '0 13 * * *'   # 22:00 KST
     - cron: '0 14 * * *'   # 23:00 KST
     - cron: '0 15 * * *'   # 24:00 (00:00) KST
+    - cron: '0 16 * * *'   # 01:00 KST
+    - cron: '0 17 * * *'   # 02:00 KST
   workflow_dispatch:
     inputs:
       test_email:
@@ -34,7 +33,8 @@ on:
 permissions:
   contents: write
 
-# 동시 실행 방지: 한 번에 하나만 돌고, 겹치면 대기 (취소 안 함)
+# 동시 실행 방지(보조 안전장치): 같은 그룹은 한 번에 하나만 실행.
+# 겹치면 진행 중인 건 끝까지 두고 새 실행은 대기. (주 트리거 겹침은 위 스케줄 정리로 해결)
 concurrency:
   group: kapital-update
   cancel-in-progress: false
