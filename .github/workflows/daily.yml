@@ -3,8 +3,9 @@ name: KAPITAL Tracker - Auto Update
 on:
   schedule:
     # 모든 cron은 UTC 기준. 주석은 KST(UTC+9).
-    # ── 07:00~14:00 KST: 매시간 ──
-    - cron: '0 22 * * *'   # 07:00 KST
+    # ※ 피크 시간(새벽 3~7시, 오후 5~7시 KST)은 cron-job.org가 3분마다 단독 담당.
+    #    겹침(동시 실행 → prev_items 꼬임)을 막기 위해 그 시간대는 여기서 제외.
+    # ── 08:00~16:00 KST: 매시간 (보조) ──
     - cron: '0 23 * * *'   # 08:00 KST
     - cron: '0 0 * * *'    # 09:00 KST
     - cron: '0 1 * * *'    # 10:00 KST
@@ -12,18 +13,16 @@ on:
     - cron: '0 3 * * *'    # 12:00 KST
     - cron: '0 4 * * *'    # 13:00 KST
     - cron: '0 5 * * *'    # 14:00 KST
-    # ── 15:00~18:50 KST: 10분 간격 (피크 시간) ──
-    - cron: '0,10,20,30,40,50 6 * * *'   # 15:xx KST
-    - cron: '0,10,20,30,40,50 7 * * *'   # 16:xx KST
-    - cron: '0,10,20,30,40,50 8 * * *'   # 17:xx KST
-    - cron: '0,10,20,30,40,50 9 * * *'   # 18:xx KST
-    # ── 19:00~24:00 KST: 매시간 ──
-    - cron: '0 10 * * *'   # 19:00 KST
+    - cron: '0 6 * * *'    # 15:00 KST
+    - cron: '0 7 * * *'    # 16:00 KST
+    # ── 20:00~02:00 KST: 매시간 (보조) ──
     - cron: '0 11 * * *'   # 20:00 KST
     - cron: '0 12 * * *'   # 21:00 KST
     - cron: '0 13 * * *'   # 22:00 KST
     - cron: '0 14 * * *'   # 23:00 KST
     - cron: '0 15 * * *'   # 24:00 (00:00) KST
+    - cron: '0 16 * * *'   # 01:00 KST
+    - cron: '0 17 * * *'   # 02:00 KST
   workflow_dispatch:
     inputs:
       test_email:
@@ -33,6 +32,12 @@ on:
 
 permissions:
   contents: write
+
+# 동시 실행 방지(보조 안전장치): 같은 그룹은 한 번에 하나만 실행.
+# 겹치면 진행 중인 건 끝까지 두고 새 실행은 대기. (주 트리거 겹침은 위 스케줄 정리로 해결)
+concurrency:
+  group: kapital-update
+  cancel-in-progress: false
 
 jobs:
   scrape-and-deploy:
@@ -83,12 +88,6 @@ jobs:
           TEST_EMAIL: ${{ github.event.inputs.test_email == 'true' && '1' || '0' }}
         run: python build_email.py
 
-      - name: SMTP 진단 (임시)
-        env:
-          NAVER_USER: wkele2k@naver.com
-          NAVER_PASS: ${{ secrets.NAVER_PASS }}
-        run: python smtp_diag.py
-
       - name: 신상품 메일 발송
         if: steps.email.outputs.send == 'true'
         uses: dawidd6/action-send-mail@v3
@@ -108,9 +107,31 @@ jobs:
         run: |
           git config user.name "kapital-bot"
           git config user.email "bot@kapital-tracker"
-          git add docs/index.html docs/date_cache.json docs/prev_items.json docs/tf_price_cache.json docs/kerouac_code_cache.json docs/new_items.json docs/ch_categories.json
-          git diff --cached --quiet && echo "변경 없음" && exit 0
-          git commit -m "auto update $(date '+%Y-%m-%d %H:%M KST' -d '+9 hours')"
-          git fetch origin main
-          git rebase origin/main
-          git push origin main
+          FILES="docs/index.html docs/date_cache.json docs/prev_items.json docs/tf_price_cache.json docs/kerouac_code_cache.json docs/new_items.json docs/ch_categories.json"
+          # 생성된 파일을 안전한 곳에 백업 (충돌과 무관하게 보존)
+          mkdir -p /tmp/out
+          for f in $FILES; do
+            [ -f "$f" ] && cp "$f" "/tmp/out/$(echo $f | tr '/' '_')"
+          done
+          # 동시 실행 충돌 대비: 최대 8회 재시도. 항상 내 결과(최신 크롤링) 우선.
+          for i in 1 2 3 4 5 6 7 8; do
+            git fetch origin main
+            git reset --hard origin/main          # 원격 최신으로 맞춤
+            # 백업해둔 내 파일을 다시 덮어쓰기
+            for f in $FILES; do
+              b="/tmp/out/$(echo $f | tr '/' '_')"
+              [ -f "$b" ] && cp "$b" "$f"
+            done
+            git add $FILES 2>/dev/null || true
+            if git diff --cached --quiet; then
+              echo "변경 없음 (원격과 동일)" && exit 0
+            fi
+            git commit -m "auto update $(date '+%Y-%m-%d %H:%M KST' -d '+9 hours')"
+            if git push origin main; then
+              echo "푸시 성공 (시도 $i)"
+              exit 0
+            fi
+            echo "푸시 충돌, 재시도 $i..."
+            sleep $((RANDOM % 8 + 2))
+          done
+          echo "8회 시도 후에도 푸시 실패" && exit 1
