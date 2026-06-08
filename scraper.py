@@ -265,17 +265,48 @@ def scrape_kerouac():
 
 
 def scrape_spacemoo():
-    static = [
-        ("51805","11.5ozデニム サルエルヌーベルパンツ 2026 (EK-1874LP)","¥26,180","ek1874lp_2.jpg","20260518"),
-        ("51756","6号帆布 スタンダードTOTE BAG 小 (EK-1399XB)","¥18,480","ek1399xb26_2.jpg","20260423"),
-        ("51610","13ozデニム ハイウエストマキシスカート (EK-1422SK)","¥15,180","ek1422sk_2.jpg","20260404"),
-        ("51611","レーヨンフリンジストール KAYO HUESO デニムマップ","¥16,280","k2603xm507_2.jpg","20260404"),
-        ("51528","fastcolor セルビッチバンダナ 田植え (K2603BA504)","-","k2603ba504_2.jpg","20260326"),
-    ]
-    return [{"source":"SPACE MOO","color":"#c084fc","name":n,"price":p,
-        "img":f"https://www.spacemoo.jp/upload/save_image/{img}",
-        "link":f"https://www.spacemoo.jp/products/details/{pid}",
-        "date":dr,"date_label":f"{dr[:4]}.{dr[4:6]}.{dr[6:8]}"} for pid,n,p,img,dr in static]
+    print("[SPACE MOO] scraping...")
+    # 카테고리 84 = KAPITAL, sort=2 = 신착순. 한 페이지에 전체(약 40개) 표시.
+    url = "https://www.spacemoo.jp/products/category/84?sort=2"
+    raw = fetch_raw(url)
+    if not raw:
+        print("  [WARN] 응답 없음 → 0 items")
+        return []
+    html = raw.decode("utf-8", errors="replace")
+    today = datetime.now(KST).strftime("%Y%m%d")
+
+    # 상품 블록(<dl>...</dl>) 단위로 분리 후 각각 파싱
+    items = []
+    seen = set()
+    # 각 상품 dl 블록 추출
+    for block in re.split(r'<!--▼商品-->', html)[1:]:
+        block = block.split('<!--▲商品-->')[0]
+        pid_m = re.search(r'/products/details/(\d+)', block)
+        if not pid_m:
+            continue
+        pid = pid_m.group(1)
+        if pid in seen:
+            continue
+        seen.add(pid)
+        img_m = re.search(r'<img src="(/upload/save_image/[^"]+)"', block)
+        name_m = re.search(r'<dd class="name"><a [^>]*>(.*?)</a>', block, re.DOTALL)
+        price_m = re.search(r'id="price02_default_\d+">\s*¥\s*([\d,]+)', block)
+        if not name_m:
+            continue
+        sold = "SOLD OUT" in block
+        items.append({
+            "source": "SPACE MOO", "color": "#c084fc",
+            "name": name_m.group(1).strip(),
+            "price": f"¥{price_m.group(1)}" if price_m else "-",
+            "img": f"https://www.spacemoo.jp{img_m.group(1)}" if img_m else "",
+            "link": f"https://www.spacemoo.jp/products/details/{pid}",
+            "date": today,
+            "date_label": "신착",
+            "sold_out": sold,
+        })
+    sold_cnt = sum(1 for it in items if it.get("sold_out"))
+    print(f"  → {len(items)} items (품절 {sold_cnt}개)")
+    return items
 
 def scrape_babooshka():
     return scrape_shop_pro_v2(
@@ -757,7 +788,6 @@ if __name__ == "__main__":
             item["is_new"] = False
         else:
             # 직전 실행 목록(prev_items)에 없던 키면 NEW.
-            # (날짜==오늘 조건 제거: 첫 등장 회차를 놓쳐도 다음 회차에 잡히도록)
             item["is_new"] = (key not in prev_items) and bool(prev_items)
         if item["is_new"]:
             new_items.append({
