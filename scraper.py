@@ -752,11 +752,13 @@ if __name__ == "__main__":
             continue  # 카테고리 item은 date_cache 대상 아님
         key = _item_key(item)
         if key not in cache:
-            # 신규 상품: 현재 item의 date를 최초 날짜로 기록
+            # 신규 상품: 현재 item의 date를 최초 날짜로 기록 + 첫 등장 표시
             cache[key] = item["date"]
+            item["_first_seen"] = True   # date_cache에 처음 기록 = 진짜 신규
         else:
             # 기존 상품: 캐시의 날짜로 덮어쓰기 (날짜 불변 보장)
             item["date"] = cache[key]
+            item["_first_seen"] = False
 
         # date_label 통일
         dr = item["date"]
@@ -802,15 +804,15 @@ if __name__ == "__main__":
         # Chrome Hearts 카테고리 item은 자체 판정(is_new)을 그대로 사용
         if item.get("_ch_category"):
             pass  # is_new 이미 함수에서 결정됨
-        elif item["source"] == "KEROUAC" and not kero_new_scheme_in_prev:
-            # 키 방식 전환 첫 회차 → 기준만 잡고 NEW 안 함
-            item["is_new"] = False
         elif item["source"] in recovering_sites:
             # 직전 크롤링 실패로 prev에 키가 없던 사이트 → 통짜 NEW 방지
             item["is_new"] = False
         else:
-            # 직전 실행 목록(prev_items)에 없던 키면 NEW.
-            item["is_new"] = (key not in prev_items) and bool(prev_items)
+            # date_cache에 처음 기록된 상품만 NEW.
+            # (prev_items 방식과 달리 페이지 경계가 흔들려도 가짜 NEW 안 생김.
+            #  date_cache는 한번 본 상품을 영구 기록하므로 들락날락에 영향 안 받음)
+            # 단, cache가 비어있던 최초 구축 회차는 전부 first_seen이 되므로 prev_items로 보호.
+            item["is_new"] = bool(item.get("_first_seen")) and bool(prev_items)
         if item["is_new"]:
             new_items.append({
                 "source": item["source"],
