@@ -777,6 +777,25 @@ if __name__ == "__main__":
     kero_new_scheme_in_prev = any(
         k.startswith("KEROUAC:") and k.split(":",1)[1].isdigit() for k in prev_items
     )
+
+    # 사이트별 prev 키 보유 여부 미리 계산.
+    # 어떤 사이트가 이번엔 상품이 있는데 prev_items엔 그 사이트 키가 "하나도" 없으면,
+    # 직전 회차에 그 사이트 크롤링이 실패(0개)했을 가능성 → 통짜 NEW 오발송 방지를 위해
+    # 이번 회차는 그 사이트 NEW를 건너뛰고 기준만 갱신한다.
+    from collections import Counter as _Counter
+    prev_site_has = set()
+    for k in prev_items:
+        src = k.split(":", 1)[0]
+        prev_site_has.add(src)
+    this_site_count = _Counter(it["source"] for it in all_items if not it.get("_ch_category"))
+    # prev에 이 사이트 키가 전혀 없고, 이번엔 여러 개 잡힌 사이트 = 복구 회차로 간주
+    recovering_sites = set()
+    for src, cnt in this_site_count.items():
+        if cnt >= 3 and src not in prev_site_has and bool(prev_items):
+            recovering_sites.add(src)
+    if recovering_sites:
+        print(f"  [복구감지] prev에 없던 사이트 {recovering_sites} → 이번 회차 NEW 제외, 기준만 갱신")
+
     for item in all_items:
         key = _item_key(item)
         current_keys.add(key)
@@ -785,6 +804,9 @@ if __name__ == "__main__":
             pass  # is_new 이미 함수에서 결정됨
         elif item["source"] == "KEROUAC" and not kero_new_scheme_in_prev:
             # 키 방식 전환 첫 회차 → 기준만 잡고 NEW 안 함
+            item["is_new"] = False
+        elif item["source"] in recovering_sites:
+            # 직전 크롤링 실패로 prev에 키가 없던 사이트 → 통짜 NEW 방지
             item["is_new"] = False
         else:
             # 직전 실행 목록(prev_items)에 없던 키면 NEW.
@@ -803,6 +825,14 @@ if __name__ == "__main__":
     with open("docs/new_items.json", "w", encoding="utf-8") as _f:
         _jn.dump(new_items, _f, ensure_ascii=False, indent=2)
     print(f"  NEW 상품: {len(new_items)}개")
+
+    # 크롤링 실패 보호: 이번에 0개인 사이트는 prev의 키를 그대로 살려서 저장.
+    # (셀레니움 등 일시적 실패로 한 사이트가 0개가 돼도 기준선이 사라지지 않게 → 다음 회차 통짜 NEW 방지)
+    this_sites = set(this_site_count.keys())
+    for k in prev_items:
+        src = k.split(":", 1)[0]
+        if src not in this_sites and src != "CHROME HEARTS":
+            current_keys.add(k)  # 이번에 안 잡힌 사이트의 이전 키 보존
 
     # 현재 상품 목록 저장 (다음 실행 비교용)
     save_prev_items(current_keys)
