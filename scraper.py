@@ -691,7 +691,7 @@ def build_html(items):
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes">
 <title>KAPITAL NEW ARRIVALS TRACKER</title>
 {CSS}
 </head>
