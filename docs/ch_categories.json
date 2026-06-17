@@ -18,5 +18,9 @@
   "/socks": {
     "label": "Socks",
     "first_seen": "20260606"
+  },
+  "/hoodie": {
+    "label": "Hoodie",
+    "first_seen": "20260618"
   }
 }
