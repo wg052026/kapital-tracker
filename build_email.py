@@ -32,11 +32,13 @@ if os.environ.get("TEST_EMAIL") == "1":
     print("테스트 모드: 가짜 상품으로 메일 강제 발송")
 
 # GitHub Actions 출력: NEW 유무
+has_ch = any(it.get("source") in ("CHROME HEARTS", "CH DROP") for it in items)
 out = os.environ.get("GITHUB_OUTPUT")
 if out:
     with open(out, "a") as f:
         f.write(f"send={'true' if items else 'false'}\n")
         f.write(f"count={len(items)}\n")
+        f.write(f"has_ch={'true' if has_ch else 'false'}\n")
 
 if not items:
     print("NEW 없음 → 메일 발송 안 함")
