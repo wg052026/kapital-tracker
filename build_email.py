@@ -23,9 +23,9 @@ items = [it for it in items if it["source"] in ALERT_SITES]
 # 테스트 모드: TEST_EMAIL=1 이면 가짜 상품을 넣어 무조건 메일 발송 (작동 확인용)
 if os.environ.get("TEST_EMAIL") == "1":
     items = [{
-        "source": "CHROME HEARTS",
-        "name": "[테스트] 새 카테고리: Test Drop",
-        "price": "-",
+        "source": "KEROUAC",
+        "name": "[테스트] 메일 발송 확인용 상품입니다",
+        "price": "¥00,000",
         "link": SITE_URL,
         "img": "",
     }] + items
