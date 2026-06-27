@@ -9,7 +9,7 @@ NOW = datetime.now(KST).strftime("%Y.%m.%d %H:%M KST")
 SITE_URL = "https://wg052026.github.io/kapital-tracker/"
 
 # 메일 알림을 받을 사이트만 지정 (여기 목록만 발송됨)
-ALERT_SITES = {"KAPITAL 공홈", "KEROUAC", "TAKE FIVE", "CHROME HEARTS"}
+ALERT_SITES = {"KAPITAL 공홈", "KEROUAC", "TAKE FIVE", "CHROME HEARTS", "CH DROP"}
 
 try:
     with open("docs/new_items.json", "r", encoding="utf-8") as f:
@@ -47,12 +47,16 @@ by_site = {}
 for it in items:
     by_site.setdefault(it["source"], []).append(it)
 
+# 표시 이름 (CH DROP은 친근한 라벨로)
+SITE_DISPLAY = {"CH DROP": "🔥 크롬하츠 발매 (레딧)"}
+
 rows = []
 for source, group in by_site.items():
+    disp = SITE_DISPLAY.get(source, source)
     rows.append(
         f'<tr><td colspan="2" style="padding:14px 12px 6px;font-size:13px;'
         f'font-weight:700;color:#111;border-bottom:2px solid #111;">'
-        f'{source} ({len(group)})</td></tr>'
+        f'{disp} ({len(group)})</td></tr>'
     )
     for it in group:
         img = it.get("img", "")
@@ -61,15 +65,33 @@ for source, group in by_site.items():
             f'style="object-fit:cover;border-radius:4px;display:block;">'
             if img else ""
         )
-        rows.append(
-            f'<tr>'
-            f'<td style="padding:8px 12px;width:64px;vertical-align:top;">{img_cell}</td>'
-            f'<td style="padding:8px 12px;vertical-align:top;font-size:13px;line-height:1.5;">'
-            f'<a href="{it["link"]}" style="color:#1a5fb4;text-decoration:none;font-weight:600;">'
-            f'{it["name"]}</a><br>'
-            f'<span style="color:#666;">{it.get("price","-")}</span>'
-            f'</td></tr>'
-        )
+        if source == "CH DROP":
+            # CH DROP: 가격 대신 공홈/레딧 링크 표시
+            ch_link = it.get("ch_link", "")
+            reddit_url = it.get("reddit_url", it.get("link", ""))
+            sub = ""
+            if ch_link:
+                sub += f'<a href="{ch_link}" style="color:#111;text-decoration:underline;">공홈 보기</a> · '
+            sub += f'<a href="{reddit_url}" style="color:#666;text-decoration:underline;">레딧 원문</a>'
+            rows.append(
+                f'<tr>'
+                f'<td style="padding:8px 12px;width:64px;vertical-align:top;">{img_cell}</td>'
+                f'<td style="padding:8px 12px;vertical-align:top;font-size:13px;line-height:1.5;">'
+                f'<a href="{it["link"]}" style="color:#1a5fb4;text-decoration:none;font-weight:600;">'
+                f'{it["name"]}</a><br>'
+                f'<span style="color:#666;font-size:12px;">{sub}</span>'
+                f'</td></tr>'
+            )
+        else:
+            rows.append(
+                f'<tr>'
+                f'<td style="padding:8px 12px;width:64px;vertical-align:top;">{img_cell}</td>'
+                f'<td style="padding:8px 12px;vertical-align:top;font-size:13px;line-height:1.5;">'
+                f'<a href="{it["link"]}" style="color:#1a5fb4;text-decoration:none;font-weight:600;">'
+                f'{it["name"]}</a><br>'
+                f'<span style="color:#666;">{it.get("price","-")}</span>'
+                f'</td></tr>'
+            )
 
 body = f"""<!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"></head>
