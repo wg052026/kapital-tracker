@@ -99,7 +99,7 @@ jobs:
           password: ${{ secrets.NAVER_PASS }}
           from: KAPITAL Tracker <wkele2k@naver.com>
           to: wkele2k@naver.com
-          subject: "[KAPITAL] 신상품 ${{ steps.email.outputs.count }}개 입고"
+          subject: ${{ steps.email.outputs.has_ch == 'true' && format('[🔥CHROME HEARTS] 신상품 {0}개 입고', steps.email.outputs.count) || format('[KAPITAL] 신상품 {0}개 입고', steps.email.outputs.count) }}
           html_body: file://email_body.html
           convert_markdown: false
 
