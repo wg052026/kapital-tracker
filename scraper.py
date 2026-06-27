@@ -570,18 +570,36 @@ def scrape_selenium_sites():
 
 def scrape_reddit_drops():
     """r/ChromeHeart에서 'online drop' 관련 글 감시 (느슨한 필터).
-    제목에 online과 drop이 둘 다 있으면 발매 관련으로 간주."""
-    import json, html as htmlmod
+    제목에 online과 drop이 둘 다 있으면 발매 관련으로 간주.
+    레딧이 GitHub 서버 IP를 403으로 막으므로 여러 경로를 순차 시도."""
+    import json, html as htmlmod, urllib.parse
     print("[Reddit CH Drops] scraping r/ChromeHeart...")
-    url = "https://www.reddit.com/r/ChromeHeart/new.json?limit=100"
-    try:
-        req = urllib.request.Request(url, headers={
-            "User-Agent": "kapital-tracker/1.0 (chrome hearts drop notifier)"
-        })
-        with urllib.request.urlopen(req, timeout=25) as r:
-            data = json.loads(r.read().decode("utf-8"))
-    except Exception as e:
-        print(f"  [WARN] reddit 실패: {e}")
+    path = "/r/ChromeHeart/new.json?limit=100"
+    ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+    # 시도할 경로들: 직접 / old / jina 프록시 / corsproxy
+    candidates = [
+        "https://www.reddit.com" + path,
+        "https://old.reddit.com" + path,
+        "https://r.jina.ai/https://www.reddit.com" + path,
+        "https://corsproxy.io/?url=" + urllib.parse.quote("https://www.reddit.com" + path, safe=""),
+    ]
+    data = None
+    for src in candidates:
+        try:
+            req = urllib.request.Request(src, headers={"User-Agent": ua, "Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=25) as r:
+                raw = r.read().decode("utf-8", "ignore")
+            parsed = json.loads(raw)
+            # 정상 응답인지 확인 (children 존재)
+            if parsed.get("data", {}).get("children"):
+                data = parsed
+                tag = src.split("//")[1].split("/")[0]
+                print(f"  ({tag} 경유 성공)")
+                break
+        except Exception as e:
+            continue
+    if data is None:
+        print("  [WARN] reddit 모든 경로 실패 (403/차단)")
         return []
 
     today = datetime.now(KST).strftime("%Y%m%d")
