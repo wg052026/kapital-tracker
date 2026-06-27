@@ -645,7 +645,7 @@ def scrape_reddit_drops():
 
 SITE_ORDER = [
     "KAPITAL 공홈","KEROUAC","TAKE FIVE","BLUE NEON",
-    "BABOOSHKA","AIN.DAH.ING","S.T.C","SE7EN","SPACE MOO","CHROME HEARTS","CH DROP",
+    "BABOOSHKA","AIN.DAH.ING","S.T.C","SE7EN","SPACE MOO","CHROME HEARTS",
 ]
 SITE_COLORS = {
     "CH DROP":"#ffffff",
@@ -832,9 +832,9 @@ if __name__ == "__main__":
                  scrape_babooshka() + scrape_aindahing() + scrape_stc() +
                  se7en_items + kapital_items + scrape_chromehearts())
 
-    # ── 레딧 CH 드롭 감시 (별도 캐시로 새 글 판별) ──
+    # ── 레딧 CH 드롭 감시 (현재 비활성화: 레딧이 서버 IP 차단) ──
     import json as _json
-    reddit_drops = scrape_reddit_drops()
+    reddit_drops = []  # scrape_reddit_drops()  # 레딧 차단으로 비활성화
     try:
         with open("docs/reddit_seen.json", "r", encoding="utf-8") as f:
             reddit_seen = set(_json.load(f))
