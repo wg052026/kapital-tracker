@@ -92,12 +92,12 @@ jobs:
         if: steps.email.outputs.send == 'true'
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: smtp.naver.com
+          server_address: smtp.gmail.com
           server_port: 587
           secure: false
-          username: wkele2k@naver.com
-          password: ${{ secrets.NAVER_PASS }}
-          from: ${{ steps.email.outputs.has_ch == 'true' && 'CHROME HEARTS Tracker <wkele2k@naver.com>' || 'KAPITAL Tracker <wkele2k@naver.com>' }}
+          username: wklee3k@gmail.com
+          password: ${{ secrets.GMAIL_PASS }}
+          from: ${{ steps.email.outputs.has_ch == 'true' && 'CHROME HEARTS Tracker <wklee3k@gmail.com>' || 'KAPITAL Tracker <wklee3k@gmail.com>' }}
           to: wkele2k@naver.com
           subject: ${{ steps.email.outputs.has_ch == 'true' && format('[🔥CHROME HEARTS] 신상품 {0}개 입고', steps.email.outputs.count) || format('[KAPITAL] 신상품 {0}개 입고', steps.email.outputs.count) }}
           html_body: file://email_body.html
