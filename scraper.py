@@ -568,17 +568,81 @@ def scrape_selenium_sites():
     return results["SE7EN"], results["KAPITAL 공홈"]
 
 
+def scrape_reddit_drops():
+    """r/ChromeHeart에서 'online drop' 관련 글 감시 (느슨한 필터).
+    제목에 online과 drop이 둘 다 있으면 발매 관련으로 간주."""
+    import json, html as htmlmod
+    print("[Reddit CH Drops] scraping r/ChromeHeart...")
+    url = "https://www.reddit.com/r/ChromeHeart/new.json?limit=25"
+    try:
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "kapital-tracker/1.0 (chrome hearts drop notifier)"
+        })
+        with urllib.request.urlopen(req, timeout=25) as r:
+            data = json.loads(r.read().decode("utf-8"))
+    except Exception as e:
+        print(f"  [WARN] reddit 실패: {e}")
+        return []
+
+    today = datetime.now(KST).strftime("%Y%m%d")
+    items = []
+    for child in data.get("data", {}).get("children", []):
+        d = child.get("data", {})
+        sub = d.get("subreddit", "")
+        title = d.get("title", "")
+        tl = title.lower()
+        # 느슨한 필터: r/ChromeHeart + 제목에 online과 drop 둘 다
+        if sub.lower() != "chromeheart":
+            continue
+        if not ("online" in tl and "drop" in tl):
+            continue
+        pid = d.get("id", "")
+        permalink = "https://www.reddit.com" + d.get("permalink", "")
+        # 이미지 추출: preview 우선, 없으면 gallery
+        img = ""
+        try:
+            img = htmlmod.unescape(d["preview"]["images"][0]["source"]["url"])
+        except Exception:
+            try:
+                mid = d["gallery_data"]["items"][0]["media_id"]
+                img = d["media_metadata"][mid]["s"]["u"].replace("&amp;", "&")
+            except Exception:
+                img = ""
+        # 본문에서 chromehearts.com 링크 있으면 추출(있을 때만)
+        ch_link = ""
+        m = re.search(r'https?://(?:www\.)?chromehearts\.com/[^\s\)\]"]+',
+                      d.get("selftext", "") or "")
+        if m:
+            ch_link = m.group(0)
+        items.append({
+            "source": "CH DROP", "color": "#ffffff",
+            "name": title,
+            "price": "",
+            "img": img,
+            "link": ch_link or permalink,  # 공홈링크 있으면 그것, 없으면 레딧글
+            "reddit_url": permalink,
+            "ch_link": ch_link,
+            "date": today,
+            "date_label": "🔥 DROP",
+            "_reddit_id": pid,
+        })
+    print(f"  → {len(items)}건 (online drop 관련)")
+    return items
+
+
 SITE_ORDER = [
-    "KAPITAL 공홈","KEROUAC","TAKE FIVE","BLUE NEON",
+    "CH DROP","KAPITAL 공홈","KEROUAC","TAKE FIVE","BLUE NEON",
     "BABOOSHKA","AIN.DAH.ING","S.T.C","SE7EN","SPACE MOO","CHROME HEARTS",
 ]
 SITE_COLORS = {
+    "CH DROP":"#ffffff",
     "KAPITAL 공홈":"#ff6b6b","KEROUAC":"#4a9eff","TAKE FIVE":"#f5c842",
     "BLUE NEON":"#5ecb8f","BABOOSHKA":"#38bdf8","AIN.DAH.ING":"#a78bfa",
     "S.T.C":"#34d399","SE7EN":"#fb923c","SPACE MOO":"#c084fc",
     "CHROME HEARTS":"#e2c97e",
 }
 SITE_LABELS = {
+    "CH DROP":"CH<br>DROP🔥",
     "KAPITAL 공홈":"KAPITAL<br>공홈","KEROUAC":"KEROUAC","TAKE FIVE":"TAKE<br>FIVE",
     "BLUE NEON":"BLUE<br>NEON","BABOOSHKA":"BABOOSHKA","AIN.DAH.ING":"AIN.DAH<br>.ING",
     "S.T.C":"S.T.C","SE7EN":"SE7EN","SPACE MOO":"SPACE<br>MOO",
@@ -641,6 +705,27 @@ def card_html(item):
     nb   = '<span class="nb">NEW</span>' if is_new else ''
     sold = '<span class="sold-badge">SOLD OUT</span>' if is_sold else ''
     sold_cls = ' sold' if is_sold else ''
+
+    # CH DROP(레딧 발매글) 전용 카드: 가격 없음, 공홈+레딧 링크
+    if item["source"] == "CH DROP":
+        ch_link = item.get("ch_link", "")
+        reddit_url = item.get("reddit_url", item["link"])
+        btns = f'<a class="kb" href="{reddit_url}" target="_blank" onclick="event.stopPropagation()">레딧 원문</a>'
+        if ch_link:
+            btns = (f'<a class="kb" href="{ch_link}" target="_blank" onclick="event.stopPropagation()" style="color:#fff">공홈 보기</a>'
+                    + btns)
+        main_link = ch_link or reddit_url
+        return (
+            f'<a class="card{sold_cls}" data-date="{item["date"]}" href="{main_link}" target="_blank">'
+            f'<div class="ci"><img src="{item["img"]}" onerror="{oe}">'
+            f'{nb}'
+            f'<div class="sd" style="background:{color}"></div></div>'
+            f'<div class="cb2"><p class="cn">{item["name"]}</p>'
+            f'<div class="cf"><span class="db">{item.get("date_label","🔥 DROP")}</span></div>'
+            + btns
+            + f'</div></a>'
+        )
+
     # 품번 추출 + 크림 버튼
     code = extract_item_code(item["source"], item["link"], item["name"], item=item)
     if code:
@@ -733,6 +818,30 @@ if __name__ == "__main__":
     all_items = (scrape_blueneon() + scrape_takefive() + scrape_kerouac() + scrape_spacemoo() +
                  scrape_babooshka() + scrape_aindahing() + scrape_stc() +
                  se7en_items + kapital_items + scrape_chromehearts())
+
+    # ── 레딧 CH 드롭 감시 (별도 캐시로 새 글 판별) ──
+    import json as _json
+    reddit_drops = scrape_reddit_drops()
+    try:
+        with open("docs/reddit_seen.json", "r", encoding="utf-8") as f:
+            reddit_seen = set(_json.load(f))
+    except Exception:
+        reddit_seen = set()
+    reddit_first_build = (len(reddit_seen) == 0)
+    for rd in reddit_drops:
+        rid = rd.get("_reddit_id", "")
+        # 처음 보는 글이면 NEW (단, 최초 구축 회차는 기준만 잡고 알림 안 함)
+        rd["is_new"] = (rid not in reddit_seen) and (not reddit_first_build)
+        rd["_ch_category"] = True  # date_cache 로직에서 제외시키기 위한 플래그 재사용
+        reddit_seen.add(rid)
+    # 레딧 본 글 목록 저장 (최근 200개만 유지)
+    try:
+        with open("docs/reddit_seen.json", "w", encoding="utf-8") as f:
+            _json.dump(list(reddit_seen)[-200:], f, ensure_ascii=False)
+    except Exception as e:
+        print(f"  [WARN] reddit_seen 저장 실패: {e}")
+    all_items = all_items + reddit_drops
+
     # 날짜 없는 사이트는 캐시에서 날짜 조회 (새 상품이면 오늘 날짜 기록)
     # 모든 상품에 대해 캐시 기반 날짜 고정
     # (한번 기록된 날짜는 절대 바뀌지 않음)
@@ -799,6 +908,19 @@ if __name__ == "__main__":
         print(f"  [복구감지] prev에 없던 사이트 {recovering_sites} → 이번 회차 NEW 제외, 기준만 갱신")
 
     for item in all_items:
+        # 레딧 CH 드롭은 별도 캐시(reddit_seen)로 관리 → prev_items 키에서 제외
+        if item.get("source") == "CH DROP":
+            if item.get("is_new"):
+                new_items.append({
+                    "source": "CH DROP",
+                    "name": item["name"],
+                    "price": "",
+                    "link": item.get("ch_link") or item.get("reddit_url", ""),
+                    "img": item.get("img", ""),
+                    "reddit_url": item.get("reddit_url", ""),
+                    "ch_link": item.get("ch_link", ""),
+                })
+            continue
         key = _item_key(item)
         current_keys.add(key)
         # Chrome Hearts 카테고리 item은 자체 판정(is_new)을 그대로 사용
