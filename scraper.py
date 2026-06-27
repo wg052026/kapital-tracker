@@ -573,7 +573,7 @@ def scrape_reddit_drops():
     제목에 online과 drop이 둘 다 있으면 발매 관련으로 간주."""
     import json, html as htmlmod
     print("[Reddit CH Drops] scraping r/ChromeHeart...")
-    url = "https://www.reddit.com/r/ChromeHeart/new.json?limit=25"
+    url = "https://www.reddit.com/r/ChromeHeart/new.json?limit=100"
     try:
         req = urllib.request.Request(url, headers={
             "User-Agent": "kapital-tracker/1.0 (chrome hearts drop notifier)"
