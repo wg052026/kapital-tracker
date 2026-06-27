@@ -100,7 +100,7 @@ body = f"""<!DOCTYPE html>
 <body style="margin:0;padding:16px;background:#f4f3f1;font-family:sans-serif;">
 <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e0ddd8;">
   <div style="padding:16px 20px;background:#111;color:#fff;">
-    <div style="font-size:18px;font-weight:700;letter-spacing:2px;">KAPITAL NEW ARRIVALS</div>
+    <div style="font-size:18px;font-weight:700;letter-spacing:2px;">{'🔥 CHROME HEARTS DROP' if has_ch else 'KAPITAL NEW ARRIVALS'}</div>
     <div style="font-size:11px;color:#aaa;margin-top:4px;">신상품 {len(items)}개 · {NOW}</div>
   </div>
   <table style="width:100%;border-collapse:collapse;">
