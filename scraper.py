@@ -569,75 +569,70 @@ def scrape_selenium_sites():
 
 
 def scrape_reddit_drops():
-    """r/ChromeHeart에서 'online drop' 관련 글 감시 (느슨한 필터).
-    제목에 online과 drop이 둘 다 있으면 발매 관련으로 간주.
-    레딧이 GitHub 서버 IP를 403으로 막으므로 여러 경로를 순차 시도."""
-    import json, html as htmlmod, urllib.parse
-    print("[Reddit CH Drops] scraping r/ChromeHeart...")
-    path = "/r/ChromeHeart/new.json?limit=100"
+    """r/ChromeHeart RSS에서 'online drop' 관련 글 감시 (느슨한 필터).
+    JSON API는 데이터센터 IP 403 차단 → RSS 피드 사용 (여러 경로 폴백)."""
+    import html as htmlmod, urllib.parse
+    print("[Reddit CH Drops] scraping r/ChromeHeart (RSS)...")
+    rss_path = "/r/ChromeHeart/new/.rss?limit=100"
     ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
-    # 시도할 경로들: 직접 / old / jina 프록시 / corsproxy
     candidates = [
-        "https://www.reddit.com" + path,
-        "https://old.reddit.com" + path,
-        "https://r.jina.ai/https://www.reddit.com" + path,
-        "https://corsproxy.io/?url=" + urllib.parse.quote("https://www.reddit.com" + path, safe=""),
+        "https://www.reddit.com" + rss_path,
+        "https://old.reddit.com" + rss_path,
+        "https://r.jina.ai/https://www.reddit.com" + rss_path,
     ]
-    data = None
+    xml = ""
     for src in candidates:
         try:
-            req = urllib.request.Request(src, headers={"User-Agent": ua, "Accept": "application/json"})
+            req = urllib.request.Request(src, headers={"User-Agent": ua, "Accept": "application/rss+xml, text/xml, */*"})
             with urllib.request.urlopen(req, timeout=25) as r:
-                raw = r.read().decode("utf-8", "ignore")
-            parsed = json.loads(raw)
-            # 정상 응답인지 확인 (children 존재)
-            if parsed.get("data", {}).get("children"):
-                data = parsed
+                xml = r.read().decode("utf-8", "ignore")
+            if "<entry" in xml or "<item" in xml:
                 tag = src.split("//")[1].split("/")[0]
                 print(f"  ({tag} 경유 성공)")
                 break
-        except Exception as e:
+            else:
+                xml = ""
+        except Exception:
             continue
-    if data is None:
-        print("  [WARN] reddit 모든 경로 실패 (403/차단)")
+    if not xml:
+        print("  [WARN] reddit RSS 모든 경로 실패")
         return []
 
     today = datetime.now(KST).strftime("%Y%m%d")
     items = []
-    for child in data.get("data", {}).get("children", []):
-        d = child.get("data", {})
-        sub = d.get("subreddit", "")
-        title = d.get("title", "")
+    # RSS(Atom) <entry> 단위로 분리
+    entries = re.split(r'<entry>', xml)[1:]
+    for ent in entries:
+        # 제목
+        mt = re.search(r'<title>(.*?)</title>', ent, re.S)
+        title = htmlmod.unescape(mt.group(1).strip()) if mt else ""
         tl = title.lower()
-        # 느슨한 필터: r/ChromeHeart + 제목에 online과 drop 둘 다
-        if sub.lower() != "chromeheart":
-            continue
+        # 느슨한 필터: 제목에 online과 drop 둘 다 (이미 r/ChromeHeart 피드)
         if not ("online" in tl and "drop" in tl):
             continue
-        pid = d.get("id", "")
-        permalink = "https://www.reddit.com" + d.get("permalink", "")
-        # 이미지 추출: preview 우선, 없으면 gallery
+        # 글 링크 (permalink)
+        ml = re.search(r'<link\s+href="([^"]+)"', ent)
+        permalink = htmlmod.unescape(ml.group(1)) if ml else ""
+        # 글 ID
+        mid = re.search(r'<id>([^<]+)</id>', ent)
+        pid = mid.group(1).strip() if mid else permalink
+        # content 안에서 이미지(<img src>)와 chromehearts.com 링크 추출
+        mc = re.search(r'<content[^>]*>(.*?)</content>', ent, re.S)
+        content = htmlmod.unescape(mc.group(1)) if mc else ""
         img = ""
-        try:
-            img = htmlmod.unescape(d["preview"]["images"][0]["source"]["url"])
-        except Exception:
-            try:
-                mid = d["gallery_data"]["items"][0]["media_id"]
-                img = d["media_metadata"][mid]["s"]["u"].replace("&amp;", "&")
-            except Exception:
-                img = ""
-        # 본문에서 chromehearts.com 링크 있으면 추출(있을 때만)
+        mi = re.search(r'<img[^>]+src="([^"]+)"', content)
+        if mi:
+            img = htmlmod.unescape(mi.group(1))
         ch_link = ""
-        m = re.search(r'https?://(?:www\.)?chromehearts\.com/[^\s\)\]"]+',
-                      d.get("selftext", "") or "")
-        if m:
-            ch_link = m.group(0)
+        mch = re.search(r'https?://(?:www\.)?chromehearts\.com/[^\s\)\]"<]+', content)
+        if mch:
+            ch_link = mch.group(0)
         items.append({
             "source": "CH DROP", "color": "#ffffff",
             "name": title,
             "price": "",
             "img": img,
-            "link": ch_link or permalink,  # 공홈링크 있으면 그것, 없으면 레딧글
+            "link": ch_link or permalink,
             "reddit_url": permalink,
             "ch_link": ch_link,
             "date": today,
