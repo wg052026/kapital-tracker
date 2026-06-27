@@ -420,10 +420,62 @@ def scrape_chromehearts():
     with open("docs/ch_categories.json", "w", encoding="utf-8") as _f:
         _jc.dump(known, _f, ensure_ascii=False, indent=2)
 
+    # ── 카테고리 안의 개별 신상품 감지 (메뉴는 안 변해도 상품만 추가되는 경우) ──
+    # 각 카테고리 페이지를 긁어 상품 링크를 모으고, 처음 보는 상품을 NEW로.
+    try:
+        with open("docs/ch_products.json", "r", encoding="utf-8") as _f:
+            seen_products = _jc.load(_f)
+    except Exception:
+        seen_products = {}
+    products_first_run = not seen_products
+
+    prod_pat = re.compile(r'href="(/[^"]*?\.html)"', re.I)
+    img_pat = re.compile(r'<img[^>]+src="(https://[^"]+?)"', re.I)
+    now_products = {}
+    for href in list(current.keys()):
+        praw = fetch_raw(BASE + href)
+        if not praw:
+            continue
+        phtml = praw.decode("utf-8", errors="replace")
+        for pm in prod_pat.finditer(phtml):
+            plink = pm.group(1)
+            # 상품 상세 페이지만 (general/magazine 등 제외)
+            if any(x in plink for x in ["/general", "/magazine", "/store", "/customer", "/about", "/contact", "/faq"]):
+                continue
+            if plink not in now_products:
+                # 근처에서 이미지/이름 추출 시도
+                seg = phtml[pm.start():pm.start()+800]
+                im = img_pat.search(seg)
+                img = im.group(1) if im else ""
+                nm = re.search(r'alt="([^"]{3,80})"', seg)
+                pname = nm.group(1).strip() if nm else plink.split("/")[-1].replace(".html","").replace("-"," ")
+                now_products[plink] = {"img": img, "name": pname, "cat": href}
+
+    for plink, info in now_products.items():
+        if plink not in seen_products:
+            seen_products[plink] = today
+            if not products_first_run:
+                items.append({
+                    "source": "CHROME HEARTS", "color": "#e2c97e",
+                    "name": info["name"],
+                    "price": "-",
+                    "img": info.get("img", ""),
+                    "link": BASE + plink,
+                    "date": today,
+                    "date_label": "신상품",
+                    "is_new": True,
+                    "_ch_category": True,
+                })
+
+    with open("docs/ch_products.json", "w", encoding="utf-8") as _f:
+        _jc.dump(seen_products, _f, ensure_ascii=False, indent=2)
+
     if first_run:
         print(f"  첫 실행 → 카테고리 {len(current)}개 기준 저장, NEW 0개")
+    elif products_first_run:
+        print(f"  → 새 카테고리 {len([i for i in items])}개 / 상품 기준 첫 저장 {len(now_products)}개")
     else:
-        print(f"  → 새 카테고리 {len(items)}개")
+        print(f"  → NEW {len(items)}개 (새 카테고리+신상품)")
     return items
 
 
