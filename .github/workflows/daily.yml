@@ -97,7 +97,7 @@ jobs:
           secure: false
           username: wkele2k@naver.com
           password: ${{ secrets.NAVER_PASS }}
-          from: KAPITAL Tracker <wkele2k@naver.com>
+          from: ${{ steps.email.outputs.has_ch == 'true' && 'CHROME HEARTS Tracker <wkele2k@naver.com>' || 'KAPITAL Tracker <wkele2k@naver.com>' }}
           to: wkele2k@naver.com
           subject: ${{ steps.email.outputs.has_ch == 'true' && format('[🔥CHROME HEARTS] 신상품 {0}개 입고', steps.email.outputs.count) || format('[KAPITAL] 신상품 {0}개 입고', steps.email.outputs.count) }}
           html_body: file://email_body.html
