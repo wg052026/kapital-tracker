@@ -26,5 +26,9 @@
   "/hat": {
     "label": "Hat",
     "first_seen": "20260623"
+  },
+  "/eyewear": {
+    "label": "Eyewear",
+    "first_seen": "20260701"
   }
 }
