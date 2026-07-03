@@ -1,1 +1,23 @@
-[]
+[
+  {
+    "source": "KAPITAL 공홈",
+    "name": "綿×リネン パッチワークカトマンズシャツ（半袖）",
+    "price": "¥27,280",
+    "link": "https://www.kapital-webshop.jp/item/EK1212SSB.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/EK1212SSB/EK1212SSB_1.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "ワッシャーシルク ネッカチーフ(Samboペイズリー)",
+    "price": "¥10,780",
+    "link": "https://www.kapital-webshop.jp/item/EK1906XM.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/EK1906XM/K2508XM513_1.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "ワッシャーシルク ネッカチーフ（ペコスペイズリー）",
+    "price": "¥10,780",
+    "link": "https://www.kapital-webshop.jp/item/EK1910XM.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/EK1910XM/K2409XM504_8.jpg"
+  }
+]
