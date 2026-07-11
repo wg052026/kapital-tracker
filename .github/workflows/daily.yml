@@ -3,26 +3,21 @@ name: KAPITAL Tracker - Auto Update
 on:
   schedule:
     # 모든 cron은 UTC 기준. 주석은 KST(UTC+9).
-    # ※ 피크 시간(새벽 3~7시, 오후 5~7시 KST)은 cron-job.org가 3분마다 단독 담당.
-    #    겹침(동시 실행 → prev_items 꼬임)을 막기 위해 그 시간대는 여기서 제외.
-    # ── 08:00~16:00 KST: 매시간 (보조) ──
+    # ※ cron-job.org가 3분마다 단독 담당: 새벽 2~7시, 오후 13~19시 KST.
+    #    겹침(동시 실행 → prev_items 꼬임) 방지를 위해 그 시간대는 여기서 제외.
+    # ── 08:00~12:00 KST: 매시간 (보조) ──
     - cron: '0 23 * * *'   # 08:00 KST
     - cron: '0 0 * * *'    # 09:00 KST
     - cron: '0 1 * * *'    # 10:00 KST
     - cron: '0 2 * * *'    # 11:00 KST
     - cron: '0 3 * * *'    # 12:00 KST
-    - cron: '0 4 * * *'    # 13:00 KST
-    - cron: '0 5 * * *'    # 14:00 KST
-    - cron: '0 6 * * *'    # 15:00 KST
-    - cron: '0 7 * * *'    # 16:00 KST
-    # ── 20:00~02:00 KST: 매시간 (보조) ──
+    # ── 20:00~01:00 KST: 매시간 (보조) ──
     - cron: '0 11 * * *'   # 20:00 KST
     - cron: '0 12 * * *'   # 21:00 KST
     - cron: '0 13 * * *'   # 22:00 KST
     - cron: '0 14 * * *'   # 23:00 KST
-    - cron: '0 15 * * *'   # 24:00 (00:00) KST
+    - cron: '0 15 * * *'   # 00:00 KST
     - cron: '0 16 * * *'   # 01:00 KST
-    - cron: '0 17 * * *'   # 02:00 KST
   workflow_dispatch:
     inputs:
       test_email:
