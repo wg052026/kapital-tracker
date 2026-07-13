@@ -621,60 +621,47 @@ def scrape_selenium_sites():
 
 
 def scrape_reddit_drops():
-    """r/ChromeHeart RSS에서 'online drop' 관련 글 감시 (느슨한 필터).
-    JSON API는 데이터센터 IP 403 차단 → RSS 피드 사용 (여러 경로 폴백)."""
-    import html as htmlmod, urllib.parse
-    print("[Reddit CH Drops] scraping r/ChromeHeart (RSS)...")
-    rss_path = "/r/ChromeHeart/new/.rss?limit=100"
+    """r/ChromeHeart에서 'online drop' 관련 글 감시.
+    레딧이 서버 IP를 차단하므로 rss2json 서비스를 경유해 JSON으로 받아온다.
+    (rss2json 서버가 레딧을 대신 읽어줌 → GitHub 서버 차단 우회)"""
+    import json as _j, html as htmlmod, urllib.parse
+    print("[Reddit CH Drops] scraping via rss2json...")
+    rss = "https://www.reddit.com/r/ChromeHeart/search.rss?q=online+drop&restrict_sr=1&sort=new"
+    api = "https://api.rss2json.com/v1/api.json?rss_url=" + urllib.parse.quote(rss, safe="")
     ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
-    candidates = [
-        "https://www.reddit.com" + rss_path,
-        "https://old.reddit.com" + rss_path,
-        "https://r.jina.ai/https://www.reddit.com" + rss_path,
-    ]
-    xml = ""
-    for src in candidates:
+    data = None
+    for attempt in range(3):
         try:
-            req = urllib.request.Request(src, headers={"User-Agent": ua, "Accept": "application/rss+xml, text/xml, */*"})
+            req = urllib.request.Request(api, headers={"User-Agent": ua})
             with urllib.request.urlopen(req, timeout=25) as r:
-                xml = r.read().decode("utf-8", "ignore")
-            if "<entry" in xml or "<item" in xml:
-                tag = src.split("//")[1].split("/")[0]
-                print(f"  ({tag} 경유 성공)")
+                data = _j.loads(r.read().decode("utf-8", "ignore"))
+            if data.get("status") == "ok" and data.get("items") is not None:
                 break
-            else:
-                xml = ""
+            data = None
         except Exception:
-            continue
-    if not xml:
-        print("  [WARN] reddit RSS 모든 경로 실패")
+            data = None
+    if not data:
+        print("  [WARN] rss2json 실패")
         return []
 
     today = datetime.now(KST).strftime("%Y%m%d")
     items = []
-    # RSS(Atom) <entry> 단위로 분리
-    entries = re.split(r'<entry>', xml)[1:]
-    for ent in entries:
-        # 제목
-        mt = re.search(r'<title>(.*?)</title>', ent, re.S)
-        title = htmlmod.unescape(mt.group(1).strip()) if mt else ""
+    for it in data.get("items", []):
+        title = htmlmod.unescape(it.get("title", "").strip())
         tl = title.lower()
-        # 느슨한 필터: 제목에 online과 drop 둘 다 (이미 r/ChromeHeart 피드)
+        # 느슨한 필터: 제목에 online과 drop 둘 다 (검색 RSS라 대부분 통과)
         if not ("online" in tl and "drop" in tl):
             continue
-        # 글 링크 (permalink)
-        ml = re.search(r'<link\s+href="([^"]+)"', ent)
-        permalink = htmlmod.unescape(ml.group(1)) if ml else ""
-        # 글 ID
-        mid = re.search(r'<id>([^<]+)</id>', ent)
-        pid = mid.group(1).strip() if mid else permalink
-        # content 안에서 이미지(<img src>)와 chromehearts.com 링크 추출
-        mc = re.search(r'<content[^>]*>(.*?)</content>', ent, re.S)
-        content = htmlmod.unescape(mc.group(1)) if mc else ""
-        img = ""
-        mi = re.search(r'<img[^>]+src="([^"]+)"', content)
-        if mi:
-            img = htmlmod.unescape(mi.group(1))
+        permalink = it.get("link", "")
+        pid = it.get("guid", permalink)
+        content = it.get("content", "") + " " + it.get("description", "")
+        # 이미지: thumbnail 우선, 없으면 content 내 img
+        img = it.get("thumbnail", "") or ""
+        if not img:
+            mi = re.search(r'<img[^>]+src="([^"]+)"', content)
+            if mi:
+                img = htmlmod.unescape(mi.group(1))
+        # chromehearts.com 링크 있으면 추출
         ch_link = ""
         mch = re.search(r'https?://(?:www\.)?chromehearts\.com/[^\s\)\]"<]+', content)
         if mch:
@@ -697,7 +684,7 @@ def scrape_reddit_drops():
 
 SITE_ORDER = [
     "KAPITAL 공홈","KEROUAC","TAKE FIVE","BLUE NEON",
-    "BABOOSHKA","AIN.DAH.ING","S.T.C","SE7EN","SPACE MOO","CHROME HEARTS",
+    "BABOOSHKA","AIN.DAH.ING","S.T.C","SE7EN","SPACE MOO","CHROME HEARTS","CH DROP",
 ]
 SITE_COLORS = {
     "CH DROP":"#ffffff",
@@ -884,9 +871,9 @@ if __name__ == "__main__":
                  scrape_babooshka() + scrape_aindahing() + scrape_stc() +
                  se7en_items + kapital_items + scrape_chromehearts())
 
-    # ── 레딧 CH 드롭 감시 (현재 비활성화: 레딧이 서버 IP 차단) ──
+    # ── 레딧 CH 드롭 감시 (rss2json 경유) ──
     import json as _json
-    reddit_drops = []  # scrape_reddit_drops()  # 레딧 차단으로 비활성화
+    reddit_drops = scrape_reddit_drops()
     try:
         with open("docs/reddit_seen.json", "r", encoding="utf-8") as f:
             reddit_seen = set(_json.load(f))
