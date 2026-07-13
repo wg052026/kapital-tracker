@@ -366,6 +366,7 @@ def scrape_chromehearts():
 
     BASE = "https://www.chromehearts.com"
     today = datetime.now(KST).strftime("%Y%m%d")
+    now_ts = datetime.now(KST).strftime("%Y-%m-%d %H:%M KST")  # 감지 시각(시:분)
 
     # 메인 페이지에서 메뉴(카테고리 목록) 긁기
     raw = fetch_raw(BASE + "/")
@@ -401,7 +402,7 @@ def scrape_chromehearts():
     items = []
     for href, label in current.items():
         if href not in known:
-            known[href] = {"label": label, "first_seen": today}
+            known[href] = {"label": label, "first_seen": today, "seen_at": now_ts}
             if not first_run:
                 # 진짜 새로 생긴 카테고리 → NEW (메인 로직 거치지 않게 직접 마킹)
                 items.append({
@@ -411,7 +412,7 @@ def scrape_chromehearts():
                     "img": "",
                     "link": BASE + href,
                     "date": today,
-                    "date_label": "신규 카테고리",
+                    "date_label": f"신규 카테고리 {now_ts.split(' ',1)[1][:5]}",
                     "is_new": True,
                     "_ch_category": True,
                 })
@@ -453,7 +454,7 @@ def scrape_chromehearts():
 
     for plink, info in now_products.items():
         if plink not in seen_products:
-            seen_products[plink] = today
+            seen_products[plink] = {"date": today, "seen_at": now_ts}
             if not products_first_run:
                 items.append({
                     "source": "CHROME HEARTS", "color": "#e2c97e",
@@ -462,7 +463,7 @@ def scrape_chromehearts():
                     "img": info.get("img", ""),
                     "link": BASE + plink,
                     "date": today,
-                    "date_label": "신상품",
+                    "date_label": f"신상품 {now_ts.split(' ',1)[1][:5]}",
                     "is_new": True,
                     "_ch_category": True,
                 })
