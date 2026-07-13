@@ -626,42 +626,53 @@ def scrape_reddit_drops():
     (rss2json 서버가 레딧을 대신 읽어줌 → GitHub 서버 차단 우회)"""
     import json as _j, html as htmlmod, urllib.parse
     print("[Reddit CH Drops] scraping via rss2json...")
-    rss = "https://www.reddit.com/r/ChromeHeart/search.rss?q=online+drop&restrict_sr=1&sort=new"
-    api = "https://api.rss2json.com/v1/api.json?rss_url=" + urllib.parse.quote(rss, safe="")
+    queries = ["online drop", "drop online"]  # r/ChromeHeart 내 검색 (restrict_sr=1)
     ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
-    data = None
-    for attempt in range(3):
-        try:
-            req = urllib.request.Request(api, headers={"User-Agent": ua})
-            with urllib.request.urlopen(req, timeout=25) as r:
-                data = _j.loads(r.read().decode("utf-8", "ignore"))
-            if data.get("status") == "ok" and data.get("items") is not None:
-                break
-            data = None
-        except Exception:
-            data = None
-    if not data:
+    all_raw = []
+    seen_guid = set()
+    for q in queries:
+        rss = ("https://www.reddit.com/r/ChromeHeart/search.rss?q="
+               + urllib.parse.quote(q) + "&restrict_sr=1&sort=new")
+        api = "https://api.rss2json.com/v1/api.json?rss_url=" + urllib.parse.quote(rss, safe="")
+        got = None
+        for attempt in range(3):
+            try:
+                req = urllib.request.Request(api, headers={"User-Agent": ua})
+                with urllib.request.urlopen(req, timeout=25) as r:
+                    got = _j.loads(r.read().decode("utf-8", "ignore"))
+                if got.get("status") == "ok" and got.get("items") is not None:
+                    break
+                got = None
+            except Exception:
+                got = None
+        if not got:
+            continue
+        for it in got.get("items", []):
+            g = it.get("guid", it.get("link", ""))
+            if g in seen_guid:
+                continue
+            seen_guid.add(g)
+            all_raw.append(it)
+    if not all_raw:
         print("  [WARN] rss2json 실패")
         return []
 
     today = datetime.now(KST).strftime("%Y%m%d")
     items = []
-    for it in data.get("items", []):
+    for it in all_raw:
         title = htmlmod.unescape(it.get("title", "").strip())
         tl = title.lower()
-        # 느슨한 필터: 제목에 online과 drop 둘 다 (검색 RSS라 대부분 통과)
+        # 느슨한 필터: 제목에 online과 drop 둘 다
         if not ("online" in tl and "drop" in tl):
             continue
         permalink = it.get("link", "")
         pid = it.get("guid", permalink)
         content = it.get("content", "") + " " + it.get("description", "")
-        # 이미지: thumbnail 우선, 없으면 content 내 img
         img = it.get("thumbnail", "") or ""
         if not img:
             mi = re.search(r'<img[^>]+src="([^"]+)"', content)
             if mi:
                 img = htmlmod.unescape(mi.group(1))
-        # chromehearts.com 링크 있으면 추출
         ch_link = ""
         mch = re.search(r'https?://(?:www\.)?chromehearts\.com/[^\s\)\]"<]+', content)
         if mch:
