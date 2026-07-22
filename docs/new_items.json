@@ -1,1 +1,23 @@
-[]
+[
+  {
+    "source": "KAPITAL 공홈",
+    "name": "OXギンガム CACTUSカバーオール",
+    "price": "¥29,480",
+    "link": "https://www.kapital-webshop.jp/item/K2604LJ103.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/K2604LJ103/K2604LJ103_1.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "ニット×シャンブレー ポロシャツ（アイスラボニータ刺繍）",
+    "price": "¥70,180",
+    "link": "https://www.kapital-webshop.jp/item/K2605KN171.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/K2605KN171/K2605KN171_SAX.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "ニット×ヨーヨーキルト ポロシャツ",
+    "price": "¥86,680",
+    "link": "https://www.kapital-webshop.jp/item/K2606KN242.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/K2606KN242/K2606KN242_BL.jpg"
+  }
+]
