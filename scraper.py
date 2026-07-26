@@ -194,7 +194,37 @@ def scrape_takefive():
 
 def scrape_kerouac():
     print("[Kerouac] scraping...")
-    raw = fetch_raw("https://kerouac.okinawa/view/category/ct45")
+    # KEROUAC는 기본 헤더로 403 → 완전한 브라우저 헤더로 재시도
+    kero_headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "ja,en-US;q=0.9,en;q=0.8,ko;q=0.7",
+        "Accept-Encoding": "identity",
+        "Referer": "https://kerouac.okinawa/",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+    }
+    raw = b""
+    try:
+        req = urllib.request.Request("https://kerouac.okinawa/view/category/ct45", headers=kero_headers)
+        with urllib.request.urlopen(req, timeout=25) as r:
+            raw = r.read()
+    except Exception as e:
+        print(f"  [WARN] 직접요청 실패: {e}")
+        # 폴백: jina 프록시 경유
+        try:
+            preq = urllib.request.Request(
+                "https://r.jina.ai/https://kerouac.okinawa/view/category/ct45",
+                headers={"User-Agent": kero_headers["User-Agent"], "Accept": "application/json"})
+            with urllib.request.urlopen(preq, timeout=30) as r:
+                import json as _j
+                jd = _j.loads(r.read().decode("utf-8", "ignore"))
+                raw = jd.get("data", {}).get("content", "").encode("utf-8")
+            if raw:
+                print("  (jina 프록시 경유 성공)")
+        except Exception as e2:
+            print(f"  [WARN] 프록시도 실패: {e2}")
+            return []
     if not raw: return []
     html = raw.decode("utf-8", errors="replace")
 
