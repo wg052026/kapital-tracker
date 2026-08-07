@@ -1,1 +1,37 @@
-[]
+[
+  {
+    "source": "KAPITAL 공홈",
+    "name": "薄キャンバス　ヌーベルパンツ",
+    "price": "¥25,080",
+    "link": "https://www.kapital-webshop.jp/item/EK1276LPA.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/EK1276LPA/EK1276LPA_NV.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "レーヨン フリンジストール（ナデシコシャンペトル）",
+    "price": "¥15,180",
+    "link": "https://www.kapital-webshop.jp/item/K2309XG527.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/K2309XG527/K2309XG527_5.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "ガーゼ天竺 チャグン-Tシャツ",
+    "price": "¥9,680",
+    "link": "https://www.kapital-webshop.jp/item/K2604SC150.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/K2604SC150/K2604SC150_PK.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "フレンチクロスリネン 抜染おくら柄 ライチードレス",
+    "price": "¥47,080",
+    "link": "https://www.kapital-webshop.jp/item/K2605OP170.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/K2605OP170/K2605OP170_1.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "フレンチクロスリネン 抜染おくら柄 半袖開襟シャツ",
+    "price": "¥31,680",
+    "link": "https://www.kapital-webshop.jp/item/K2605SS168.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/K2605SS168/K2605SS168_1.jpg"
+  }
+]
