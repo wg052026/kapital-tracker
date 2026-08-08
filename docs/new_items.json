@@ -1,1 +1,23 @@
-[]
+[
+  {
+    "source": "KAPITAL 공홈",
+    "name": "薄キャンバス ヌーベルパンツ",
+    "price": "¥25,080",
+    "link": "https://www.kapital-webshop.jp/item/EK1276LPB.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/EK1276LPB/EK1276LPA_NVs.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "fastcolor セルビッチバンダナ（PAISLEY PATCHWORK）",
+    "price": "¥3,520",
+    "link": "https://www.kapital-webshop.jp/item/EK1671BAA.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/EK1671BAA/EK1671BAA_1.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "レーヨン フリンジストール（ナデシコシャンペトル）",
+    "price": "¥15,180",
+    "link": "https://www.kapital-webshop.jp/item/EK1907XM.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/EK1907XM/K2309XG527_5.jpg"
+  }
+]
