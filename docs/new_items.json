@@ -1,1 +1,23 @@
-[]
+[
+  {
+    "source": "KAPITAL 공홈",
+    "name": "リネン クリップシャツ",
+    "price": "¥28,380",
+    "link": "https://www.kapital-webshop.jp/item/EK1599LSA.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/EK1599LSA/EK1599LSA_2026SS2_BGR.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "コーマギャバ アオザイカーゴパンツ 2026",
+    "price": "¥25,080",
+    "link": "https://www.kapital-webshop.jp/item/K2604LP120.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/K2604LP120/K2604LP120_1.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "綿麻グレンチェック サルエルイージーパンツ",
+    "price": "¥31,680",
+    "link": "https://www.kapital-webshop.jp/item/K2606LP234.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/K2606LP234/K2606LP234_BR.jpg"
+  }
+]
