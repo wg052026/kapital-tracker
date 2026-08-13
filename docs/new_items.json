@@ -1,9 +1,23 @@
 [
   {
-    "source": "TAKE FIVE",
-    "name": "상품 193065772",
-    "price": "¥22,880",
-    "link": "https://takefive.jp/?pid=193065772",
-    "img": "https://img09.shop-pro.jp/PA01043/640/product/193065772_th.jpg"
+    "source": "SE7EN",
+    "name": "상품 4264",
+    "price": "-",
+    "link": "https://se7en.jp/products/detail/4264",
+    "img": "https://se7en.jp/html/upload/save_image/0813123235_6a7d3ad31cc9f.jpg"
+  },
+  {
+    "source": "SE7EN",
+    "name": "상품 4263",
+    "price": "-",
+    "link": "https://se7en.jp/products/detail/4263",
+    "img": "https://se7en.jp/html/upload/save_image/0813122727_6a7d399fb3f67.jpg"
+  },
+  {
+    "source": "SE7EN",
+    "name": "상품 4262",
+    "price": "-",
+    "link": "https://se7en.jp/products/detail/4262",
+    "img": "https://se7en.jp/html/upload/save_image/0813121019_6a7d359bedf87.jpg"
   }
 ]
