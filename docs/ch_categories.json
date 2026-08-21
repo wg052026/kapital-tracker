@@ -34,5 +34,10 @@
   "/scarf": {
     "label": "scarf",
     "first_seen": "20260710"
+  },
+  "/shirt": {
+    "label": "shirt",
+    "first_seen": "20260822",
+    "seen_at": "2026-08-22 02:01 KST"
   }
 }
