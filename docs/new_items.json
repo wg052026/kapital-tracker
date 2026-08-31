@@ -1,1 +1,30 @@
-[]
+[
+  {
+    "source": "KAPITAL 공홈",
+    "name": "12ozデニム CACTUSカバーオール",
+    "price": "¥28,380",
+    "link": "https://www.kapital-webshop.jp/item/EK1387LJB.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/EK1387LJB/EK1387LJA_3.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "13ozデニム クラブバギー 5P パンツ",
+    "price": "¥21,780",
+    "link": "https://www.kapital-webshop.jp/item/EK1895LP.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/EK1895LP/K2502LP009_1.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "縮絨ウール Alaska-Ravenマフラー",
+    "price": "¥29,480",
+    "link": "https://www.kapital-webshop.jp/item/EK1913XM.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/EK1913XM/K2510XM543_1.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "縮絨ウール Alaska-Ravenブランケット",
+    "price": "¥48,180",
+    "link": "https://www.kapital-webshop.jp/item/EK1914XM.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/EK1914XM/K2511XM563_5.jpg"
+  }
+]
