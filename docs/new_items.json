@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "source": "SE7EN",
+    "name": "상품 4300",
+    "price": "-",
+    "link": "https://se7en.jp/products/detail/4300",
+    "img": "https://se7en.jp/html/upload/save_image/0904115423_6a9a32dff0526.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "fastcolor セルビッチバンダナ（Sneak Anchor）",
+    "price": "¥3,520",
+    "link": "https://www.kapital-webshop.jp/item/EK914BA.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/EK914BA/EK914BA_6.jpg"
+  }
+]
