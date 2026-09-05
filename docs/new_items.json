@@ -1,1 +1,23 @@
-[]
+[
+  {
+    "source": "KEROUAC",
+    "name": "薄キャンバスランバーパンツ 2026 / キナリ",
+    "price": "¥23,980",
+    "link": "https://kerouac.okinawa/view/item/000000004764?category_page_id=ct45",
+    "img": "https://makeshop-multi-images.akamaized.net/kerouac2021/itemimages/000000004764_SIqWsuW.jpg"
+  },
+  {
+    "source": "KEROUAC",
+    "name": "薄キャンバスランバーパンツ 2026 / ブラック",
+    "price": "¥23,980",
+    "link": "https://kerouac.okinawa/view/item/000000004767?category_page_id=ct45",
+    "img": "https://makeshop-multi-images.akamaized.net/kerouac2021/itemimages/000000004767_r7QH2ki.jpg"
+  },
+  {
+    "source": "SE7EN",
+    "name": "상품 4304",
+    "price": "-",
+    "link": "https://se7en.jp/products/detail/4304",
+    "img": "https://se7en.jp/html/upload/save_image/0905110745_6a9b7971cedaa.jpg"
+  }
+]
