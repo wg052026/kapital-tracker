@@ -1,1 +1,23 @@
-[]
+[
+  {
+    "source": "KAPITAL 공홈",
+    "name": "スタプレ レトロストライプ 5P フリスコ",
+    "price": "¥26,180",
+    "link": "https://www.kapital-webshop.jp/item/K2604LP088.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/K2604LP088/K2604LP088_BE.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "アルベリックオックス 更紗柄 5P フリスコ",
+    "price": "¥32,780",
+    "link": "https://www.kapital-webshop.jp/item/K2604LP140.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/K2604LP140/K2604LP140_BE.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "TOP天竺 ヒッピーロンT(ボーダーパッチワーク)",
+    "price": "¥20,680",
+    "link": "https://www.kapital-webshop.jp/item/K2606LC807.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/K2606LC807/K2606LC807_1.jpg"
+  }
+]
