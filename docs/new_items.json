@@ -1,1 +1,23 @@
-[]
+[
+  {
+    "source": "KAPITAL 공홈",
+    "name": "12ozデニム 5P NEWモモンロー(25～28inc)",
+    "price": "¥26,180",
+    "link": "https://www.kapital-webshop.jp/item/EK1825LP.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/EK1825LP/EK1825LP_1.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "12ozデニム 5P NEWモモンロー(30～38inc)",
+    "price": "¥26,180",
+    "link": "https://www.kapital-webshop.jp/item/EK1826LP.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/EK1826LP/EK1826LP_1.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "ガーゼリネンヘリンボン スタンドペニーシャツ",
+    "price": "¥29,480",
+    "link": "https://www.kapital-webshop.jp/item/EK598LSA.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/EK598LSA/EK598LSA_WH.jpg"
+  }
+]
