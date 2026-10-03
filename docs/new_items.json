@@ -1,1 +1,30 @@
-[]
+[
+  {
+    "source": "KAPITAL 공홈",
+    "name": "リップストップ ジャンボカーゴパンツ",
+    "price": "¥37,180",
+    "link": "https://www.kapital-webshop.jp/item/EK1374LP.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/EK1374LP/EK1374_2.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "14ozデニム 5P ラットフレアパンツ(ヒッピーINSANEリメイク)",
+    "price": "¥174,680",
+    "link": "https://www.kapital-webshop.jp/item/K2603LP074.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/K2603LP074/K2603LP074_1.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "ポリタフタ CAL-SHAKAシャムJKT",
+    "price": "¥88,880",
+    "link": "https://www.kapital-webshop.jp/item/K2608LJ009.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/K2608LJ009/K2608LJ009_1s.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "ポリタフタ CAL-SHAKAパンツ",
+    "price": "¥49,280",
+    "link": "https://www.kapital-webshop.jp/item/K2608LP010.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/K2608LP010/K2608LP010_1.jpg"
+  }
+]
