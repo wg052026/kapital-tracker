@@ -87,29 +87,39 @@ def scrape_shop_pro_v2(source, color, img_prefix, base_url, cat_name=None):
     try: html = raw.decode("euc-jp")
     except: html = raw.decode("utf-8", errors="replace")
 
+    # 썸네일 파일명이 예전엔 숫자_th.jpg, 지금은 숫자.jpg (_th 없어짐) → _th 선택적
     img_pat   = re.compile(
         r'https://img\d+\.shop-pro\.jp/' + img_prefix +
-        r'/product/(\d+)_th\.(jpg|png)\?cmsp_timestamp=(\d{8})\d+'
+        r'/product/(\d+)(_th)?\.(jpg|png)\?cmsp_timestamp=(\d{8})\d+'
     )
     name_pat  = re.compile(r'href="\?pid=\d+"[^>]*>(?:KAPITAL\s*[-/]\s*|\[KAPITAL\]\s*)?([^<]{4,100})</a>')
+    # 새 구조 대체 패턴: 이미지 alt / h3 제목, span.c-price-text 가격
+    alt_pat   = re.compile(r'alt="([^"]{4,120})"')
+    title_pat = re.compile(r'c-product-item__title">([^<]{4,120})<')
     price_pat = re.compile(r'([\d,]+)円')
     sold_pat  = re.compile(r'SOLD\s*OUT|完売|sold[-_]out', re.IGNORECASE)
 
     items, seen = [], set()
     for mi in img_pat.finditer(html):
-        pid, ext, dr = mi.group(1), mi.group(2), mi.group(3)
+        pid, th_suffix, ext, dr = mi.group(1), (mi.group(2) or ""), mi.group(3), mi.group(4)
         if pid in seen: continue
         seen.add(pid)
-        seg = html[mi.start(): mi.start()+600]
+        seg = html[mi.start(): mi.start()+1300]
         mn  = name_pat.search(seg)
         mp  = price_pat.search(seg)
         sold = bool(sold_pat.search(seg))
-        name = unescape(mn.group(1)).strip() if mn else f"상품 {pid}"
+        # 이름: 기존 패턴 → alt → h3 제목 순
+        if mn:
+            name = unescape(mn.group(1)).strip()
+        else:
+            ma = alt_pat.search(seg) or title_pat.search(seg)
+            raw_name = ma.group(1) if ma else f"상품 {pid}"
+            name = unescape(re.sub(r'^(KAPITAL\s*[-/]\s*|\[KAPITAL\]\s*)', '', raw_name)).strip()
         items.append({
             "source": source, "color": color,
             "name": name,
             "price": f"¥{mp.group(1)}" if mp else "-",
-            "img": f"https://img15.shop-pro.jp/{img_prefix}/product/{pid}_th.{ext}",
+            "img": f"https://img15.shop-pro.jp/{img_prefix}/product/{pid}{th_suffix}.{ext}",
             "link": f"{base_url.split('?')[0]}?pid={pid}",
             "date": dr, "date_label": f"{dr[:4]}.{dr[4:6]}.{dr[6:8]}",
             "sold_out": sold,
