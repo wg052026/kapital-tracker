@@ -470,8 +470,8 @@ def scrape_chromehearts():
         seen_products = {}
     products_first_run = not seen_products
 
+    # 공홈 상품 블록: data-pid/data-name/data-price 가 있고, srcset 에 사진, href 에 상세링크
     prod_pat = re.compile(r'href="(/[^"]*?\.html)"', re.I)
-    img_pat = re.compile(r'<img[^>]+src="(https://[^"]+?)"', re.I)
     now_products = {}
     for href in list(current.keys()):
         praw = fetch_raw(BASE + href)
@@ -484,22 +484,36 @@ def scrape_chromehearts():
             if any(x in plink for x in ["/general", "/magazine", "/store", "/customer", "/about", "/contact", "/faq"]):
                 continue
             if plink not in now_products:
-                # 근처에서 이미지/이름 추출 시도
-                seg = phtml[pm.start():pm.start()+800]
-                im = img_pat.search(seg)
-                img = im.group(1) if im else ""
-                nm = re.search(r'alt="([^"]{3,80})"', seg)
+                # 링크 앞뒤로 블록을 넉넉히 잡아 이름/사진/가격 추출
+                seg = phtml[max(0, pm.start()-700): pm.start()+900]
+                # 이름: data-name 우선 → alt → 품번
+                nm = re.search(r'data-name="([^"]{2,80})"', seg) or re.search(r'alt="([^"]{3,80})"', seg)
                 pname = nm.group(1).strip() if nm else plink.split("/")[-1].replace(".html","").replace("-"," ")
-                now_products[plink] = {"img": img, "name": pname, "cat": href}
+                # 가격: data-price
+                mp = re.search(r'data-price="([\d.]+)"', seg)
+                price = f"${mp.group(1)}" if mp else "-"
+                # 사진: srcset 안의 첫 https png/jpg
+                img = ""
+                ms = re.search(r'srcset="(https://[^"\s]+\.(?:png|jpg|jpeg)[^"\s]*)', seg, re.I)
+                if ms:
+                    img = ms.group(1)
+                else:
+                    mi = re.search(r'<img[^>]+src="(https://[^"]+?\.(?:png|jpg|jpeg)[^"]*)"', seg, re.I)
+                    if mi: img = mi.group(1)
+                now_products[plink] = {"img": img, "name": pname, "price": price, "cat": href}
 
+    # 처음 보는 상품: 사진·이름·감지시각을 캐시에 영구 저장 (공홈에서 사라져도 보존)
     for plink, info in now_products.items():
         if plink not in seen_products:
-            seen_products[plink] = {"date": today, "seen_at": now_ts}
+            rec = {"date": today, "seen_at": now_ts,
+                   "name": info.get("name", ""), "img": info.get("img", ""),
+                   "price": info.get("price", "-")}
+            seen_products[plink] = rec
             if not products_first_run:
                 items.append({
                     "source": "CHROME HEARTS", "color": "#e2c97e",
                     "name": info["name"],
-                    "price": "-",
+                    "price": info.get("price", "-"),
                     "img": info.get("img", ""),
                     "link": BASE + plink,
                     "date": today,
@@ -507,16 +521,51 @@ def scrape_chromehearts():
                     "is_new": True,
                     "_ch_category": True,
                 })
+        else:
+            # 이미 본 상품이라도 예전엔 사진/이름이 안 담겼을 수 있음 → 보강
+            rec = seen_products[plink]
+            if isinstance(rec, dict):
+                if not rec.get("img") and info.get("img"):
+                    rec["img"] = info["img"]
+                if not rec.get("name") and info.get("name"):
+                    rec["name"] = info["name"]
 
     with open("docs/ch_products.json", "w", encoding="utf-8") as _f:
         _jc.dump(seen_products, _f, ensure_ascii=False, indent=2)
 
+    # ── 화면 표시용: 캐시에 쌓인 '이미 본' 크롬하츠 상품도 계속 보이게 (사라져도 보존) ──
+    # 이번에 NEW 로 추가된 것은 위에서 이미 들어감 → 나머지(기존)만 보강.
+    new_links = {it["link"] for it in items}
+    for plink, rec in seen_products.items():
+        if not isinstance(rec, dict):
+            continue
+        if not rec.get("img"):   # 사진 없는 옛 기록은 화면에 안 넣음
+            continue
+        full = BASE + plink
+        if full in new_links:
+            continue
+        dr = rec.get("date", today)
+        seen_at = rec.get("seen_at", "")
+        hhmm = seen_at.split(' ',1)[1][:5] if ' ' in seen_at else ""
+        items.append({
+            "source": "CHROME HEARTS", "color": "#e2c97e",
+            "name": rec.get("name", "") or plink.split("/")[-1].replace(".html",""),
+            "price": rec.get("price", "-"),
+            "img": rec.get("img", ""),
+            "link": full,
+            "date": dr,
+            "date_label": (f"{dr[:4]}.{dr[4:6]}.{dr[6:8]}" + (f" {hhmm}" if hhmm else "")),
+            "is_new": False,
+            "_ch_category": True,
+        })
+
     if first_run:
         print(f"  첫 실행 → 카테고리 {len(current)}개 기준 저장, NEW 0개")
     elif products_first_run:
-        print(f"  → 새 카테고리 {len([i for i in items])}개 / 상품 기준 첫 저장 {len(now_products)}개")
+        print(f"  → 새 카테고리 기준 저장 / 상품 기준 첫 저장 {len(now_products)}개")
     else:
-        print(f"  → NEW {len(items)}개 (새 카테고리+신상품)")
+        new_cnt = sum(1 for it in items if it.get("is_new"))
+        print(f"  → NEW {new_cnt}개 / 화면표시 총 {len(items)}개 (사라진 것 포함 보존)")
     return items
 
 
@@ -778,7 +827,7 @@ def scrape_reddit_drops():
 
 SITE_ORDER = [
     "KAPITAL 공홈","KEROUAC","TAKE FIVE","BLUE NEON",
-    "BABOOSHKA","AIN.DAH.ING","S.T.C","SE7EN","SPACE MOO","CHROME HEARTS","CH DROP",
+    "BABOOSHKA","AIN.DAH.ING","S.T.C","SE7EN","SPACE MOO","CHROME HEARTS",
 ]
 SITE_COLORS = {
     "CH DROP":"#ffffff",
@@ -965,9 +1014,9 @@ if __name__ == "__main__":
                  scrape_babooshka() + scrape_aindahing() + scrape_stc() +
                  se7en_items + kapital_items + scrape_chromehearts())
 
-    # ── 레딧 CH 드롭 감시 (rss2json 경유) ──
+    # ── 레딧 CH 드롭 감시 (비활성화: 레딧이 서버 접근을 전면 차단, 공짜 우회 불가) ──
     import json as _json
-    reddit_drops = scrape_reddit_drops()
+    reddit_drops = []  # scrape_reddit_drops()
     try:
         with open("docs/reddit_seen.json", "r", encoding="utf-8") as f:
             reddit_seen = set(_json.load(f))
