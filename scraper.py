@@ -663,39 +663,81 @@ def scrape_selenium_sites():
 
 def scrape_reddit_drops():
     """r/ChromeHeart에서 'online drop' 관련 글 감시.
-    레딧이 서버 IP를 차단하므로 rss2json 서비스를 경유해 JSON으로 받아온다.
-    (rss2json 서버가 레딧을 대신 읽어줌 → GitHub 서버 차단 우회)"""
+    레딧이 서버 IP를 차단하므로 여러 우회 경로를 순서대로 시도한다.
+    (rss2json / 레딧 직접 json / jina 프록시 — 하나라도 되면 사용)"""
     import json as _j, html as htmlmod, urllib.parse
-    print("[Reddit CH Drops] scraping via rss2json...")
+    print("[Reddit CH Drops] scraping...")
     queries = ["online drop", "drop online"]  # r/ChromeHeart 내 검색 (restrict_sr=1)
-    ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+    ua = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+          "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+
+    def _fetch_one_query(q):
+        """한 검색어에 대해 여러 경로로 시도, 통일된 글 목록 반환.
+        각 글: {title, link, guid, content}"""
+        rss = ("https://www.reddit.com/r/ChromeHeart/search.rss?q="
+               + urllib.parse.quote(q) + "&restrict_sr=1&sort=new")
+        jurl = ("https://www.reddit.com/r/ChromeHeart/search.json?q="
+                + urllib.parse.quote(q) + "&restrict_sr=1&sort=new&limit=25")
+        # (경로이름, URL, 파서종류)
+        routes = [
+            ("rss2json", "https://api.rss2json.com/v1/api.json?rss_url=" + urllib.parse.quote(rss, safe=""), "rss2json"),
+            ("reddit-json", jurl, "reddit"),
+            ("jina-json", "https://r.jina.ai/" + jurl, "jina-reddit"),
+            ("jina-rss", "https://r.jina.ai/" + rss, "jina-rss"),
+        ]
+        for name, url, kind in routes:
+            for attempt in range(2):
+                try:
+                    req = urllib.request.Request(url, headers={"User-Agent": ua, "Accept": "application/json, text/xml, */*"})
+                    with urllib.request.urlopen(req, timeout=25) as r:
+                        raw = r.read().decode("utf-8", "ignore")
+                    out = []
+                    if kind == "rss2json":
+                        d = _j.loads(raw)
+                        if d.get("status") != "ok":
+                            continue
+                        for it in d.get("items", []):
+                            out.append({"title": it.get("title",""), "link": it.get("link",""),
+                                        "guid": it.get("guid", it.get("link","")),
+                                        "content": (it.get("content","") or "") + " " + (it.get("description","") or "")})
+                    elif kind in ("reddit", "jina-reddit"):
+                        body = raw
+                        if kind == "jina-reddit":
+                            # jina 는 앞에 안내문이 붙을 수 있어 { 부터 파싱
+                            i = body.find("{")
+                            body = body[i:] if i >= 0 else body
+                        d = _j.loads(body)
+                        for ch in d.get("data", {}).get("children", []):
+                            dd = ch.get("data", {})
+                            out.append({"title": dd.get("title",""),
+                                        "link": "https://www.reddit.com" + dd.get("permalink",""),
+                                        "guid": dd.get("name", dd.get("id","")),
+                                        "content": (dd.get("selftext","") or "") + " " + _j.dumps(dd.get("preview",{}))})
+                    elif kind == "jina-rss":
+                        # jina 가 rss 를 텍스트로 줌 → 제목 줄 추출 (느슨)
+                        import re as _re
+                        for m in _re.finditer(r'<title>(.*?)</title>', raw, _re.S):
+                            t = htmlmod.unescape(m.group(1).strip())
+                            if t and "ChromeHeart" not in t and "search" not in t.lower():
+                                out.append({"title": t, "link": "", "guid": t, "content": ""})
+                    if out:
+                        print(f"  ({name} 경유 성공, {len(out)}건)")
+                        return out
+                except Exception:
+                    continue
+        return []
+
     all_raw = []
     seen_guid = set()
     for q in queries:
-        rss = ("https://www.reddit.com/r/ChromeHeart/search.rss?q="
-               + urllib.parse.quote(q) + "&restrict_sr=1&sort=new")
-        api = "https://api.rss2json.com/v1/api.json?rss_url=" + urllib.parse.quote(rss, safe="")
-        got = None
-        for attempt in range(3):
-            try:
-                req = urllib.request.Request(api, headers={"User-Agent": ua})
-                with urllib.request.urlopen(req, timeout=25) as r:
-                    got = _j.loads(r.read().decode("utf-8", "ignore"))
-                if got.get("status") == "ok" and got.get("items") is not None:
-                    break
-                got = None
-            except Exception:
-                got = None
-        if not got:
-            continue
-        for it in got.get("items", []):
-            g = it.get("guid", it.get("link", ""))
+        for it in _fetch_one_query(q):
+            g = it.get("guid") or it.get("link","")
             if g in seen_guid:
                 continue
             seen_guid.add(g)
             all_raw.append(it)
     if not all_raw:
-        print("  [WARN] rss2json 실패")
+        print("  [WARN] 레딧 모든 경로 실패")
         return []
 
     today = datetime.now(KST).strftime("%Y%m%d")
@@ -707,9 +749,9 @@ def scrape_reddit_drops():
         if not ("online" in tl and "drop" in tl):
             continue
         permalink = it.get("link", "")
-        pid = it.get("guid", permalink)
-        content = it.get("content", "") + " " + it.get("description", "")
-        img = it.get("thumbnail", "") or ""
+        pid = it.get("guid", permalink) or permalink
+        content = it.get("content", "") or ""
+        img = ""
         if not img:
             mi = re.search(r'<img[^>]+src="([^"]+)"', content)
             if mi:
@@ -1053,6 +1095,26 @@ if __name__ == "__main__":
     with open("docs/new_items.json", "w", encoding="utf-8") as _f:
         _jn.dump(new_items, _f, ensure_ascii=False, indent=2)
     print(f"  NEW 상품: {len(new_items)}개")
+
+    # ── 크롬하츠 발송 이력 기록장 (메일로 나간 크롬하츠/CH DROP 을 한 줄씩 누적) ──
+    ch_new = [it for it in new_items if it.get("source") in ("CHROME HEARTS", "CH DROP")]
+    if ch_new:
+        now_log = datetime.now(KST).strftime("%Y-%m-%d %H:%M KST")
+        try:
+            with open("docs/ch_drop_log.json", "r", encoding="utf-8") as _f:
+                ch_log = _jn.load(_f)
+        except Exception:
+            ch_log = []
+        for it in ch_new:
+            ch_log.append({
+                "sent_at": now_log,
+                "source": it.get("source"),
+                "name": it.get("name", ""),
+                "link": it.get("ch_link") or it.get("link", ""),
+            })
+        with open("docs/ch_drop_log.json", "w", encoding="utf-8") as _f:
+            _jn.dump(ch_log, _f, ensure_ascii=False, indent=2)
+        print(f"  크롬하츠 발송 이력 +{len(ch_new)}건 (총 {len(ch_log)}건)")
 
     # 크롤링 실패 보호: 이번에 0개인 사이트는 prev의 키를 그대로 살려서 저장.
     # (셀레니움 등 일시적 실패로 한 사이트가 0개가 돼도 기준선이 사라지지 않게 → 다음 회차 통짜 NEW 방지)

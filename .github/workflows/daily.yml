@@ -102,7 +102,7 @@ jobs:
         run: |
           git config user.name "kapital-bot"
           git config user.email "bot@kapital-tracker"
-          FILES="docs/index.html docs/date_cache.json docs/prev_items.json docs/tf_price_cache.json docs/kerouac_code_cache.json docs/new_items.json docs/ch_categories.json"
+          FILES="docs/index.html docs/date_cache.json docs/prev_items.json docs/tf_price_cache.json docs/kerouac_code_cache.json docs/new_items.json docs/ch_categories.json docs/ch_products.json docs/reddit_seen.json docs/ch_drop_log.json"
           # 생성된 파일을 안전한 곳에 백업 (충돌과 무관하게 보존)
           mkdir -p /tmp/out
           for f in $FILES; do
