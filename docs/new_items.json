@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "source": "SE7EN",
+    "name": "상품 4466",
+    "price": "-",
+    "link": "https://se7en.jp/products/detail/4466",
+    "img": "https://se7en.jp/html/upload/save_image/1106130208_6aed514078229.jpg"
+  },
+  {
+    "source": "SE7EN",
+    "name": "상품 4465",
+    "price": "-",
+    "link": "https://se7en.jp/products/detail/4465",
+    "img": "https://se7en.jp/html/upload/save_image/1106124041_6aed4c394533c.jpg"
+  }
+]
