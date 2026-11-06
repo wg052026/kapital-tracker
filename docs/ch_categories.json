@@ -54,5 +54,10 @@
     "label": "SPORTS MESH",
     "first_seen": "20261028",
     "seen_at": "2026-10-28 03:01 KST"
+  },
+  "/slippers": {
+    "label": "Slippers",
+    "first_seen": "20261107",
+    "seen_at": "2026-11-07 03:01 KST"
   }
 }
