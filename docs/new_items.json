@@ -1,1 +1,30 @@
-[]
+[
+  {
+    "source": "KAPITAL 공홈",
+    "name": "カラーバンダナ（PECKISH MARIA）",
+    "price": "¥3,080",
+    "link": "https://www.kapital-webshop.jp/item/EK1779BAA.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/EK1779BAA/K2405BA528_PK.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "10ozIDG×IDGデニム キャンプCAP（風呂敷刺繍）",
+    "price": "¥17,380",
+    "link": "https://www.kapital-webshop.jp/item/EK777XHB.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/EK777XHB/EK777XHA_IDG.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "綿ヘリンボン レパード柄 米米ジョーツ（SHALLOW）",
+    "price": "¥39,380",
+    "link": "https://www.kapital-webshop.jp/item/K2608LP012.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/K2608LP012/K2608LP012_9.jpg"
+  },
+  {
+    "source": "KAPITAL 공홈",
+    "name": "ハンター迷彩ヘリンボン 米米ジョーツ（SHALLOW）",
+    "price": "¥28,380",
+    "link": "https://www.kapital-webshop.jp/item/K2608LP013.html",
+    "img": "https://www.kapital-webshop.jp/client_info/KAPITAL/itemimage/K2608LP013/K2608LP013_10.jpg"
+  }
+]
